@@ -1,0 +1,912 @@
+"
+I represent a launcher for excersising SmartTest using an Epicea change-list and collecting various metrics
+
+Responsabilities:
+* dry-run: this loads the changes and runs the tests (to verify that the whole expermental run will not cause major havoc like infinite loops, ...)
+* run: this runs a complete change-list and collects the measurements.
+* oracle creation: creates an  mapping for each class which tests excercise it. Used as an oracle for calculating false positives, false negatives, ...
+* fixing: some epice files contain problematic constructs. At the class level there are a few utilities to clean them up
+* logging: I have a class level switch to enable/disable logging
+
+Collaborators Part:
+* Epicea: I rely heavily on the class hierarchy and the protocol to know which type of changes are under analysis and the way to apply them
+* I rely on the SmartTest finder and the annunce protocol (SmTListener) , to see which changes actually mapped onto tests
+* I rely on SUnit and TestSuite to calculate the test coverage while creating the oracle
+* I (partially) rely on CVS exporter to export my results to .csv files  (only when invoking #measurements exportToCSV:)
+* I (partially) rely on Roassal to show results (only when invoking measurements exportToCSV: visualise*)
+
+Public API and Key Messages
+* See #runCreationOfOracle for a typical scenario
+
+Internal Representation and Key Implementation Points.
+... to be done
+"
+Class {
+	#name : #ExperimentLauncher,
+	#superclass : #AbstractStaticDynamicExperiment,
+	#instVars : [
+		'changeList',
+		'oracle',
+		'measurements'
+	],
+	#classInstVars : [
+		'lastRuns',
+		'intermediateSave'
+	],
+	#category : #'SmartTestExperiment-analysis'
+}
+
+{ #category : #scenarios }
+ExperimentLauncher class >> dryrunTestScenarioCurrentPheme [
+	"self dryrunTestScenarioCurrentPheme"
+
+	| el |
+	el := self
+		onOmbuFiles: {'Pheme1.ombu'}
+		logFileName: 'Pheme1_LOG'
+		withPackages:
+			{#'Pheme'}.
+	^ el
+		prepare;
+		dryrun;
+		terminate
+]
+
+{ #category : #exporting }
+ExperimentLauncher class >> exportToCSV: fileName [
+	| stream fileReference |
+	fileReference := fileName asFileReference.
+	fileReference exists
+		ifTrue: [ fileReference delete ].
+	stream := fileName asFileReference writeStream.
+
+	[
+		1 to: (lastRuns size) do: [ :i |
+			(lastRuns at: i) exportToCSVStream: stream withHeader: (i = 1)
+		]
+	] ensure: [ stream close ]
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> fixOmbuFileNamed: aFileName [
+	"Some Epicea files contain little quirks which hamper or even prevent launching a SmartTest experiment. This method goes over an epicea change file, fixes the issues and then overwrites the file so that future experimemt runs will go smoothly"
+
+	"self fixOmbuFileNamed: 'PharoLANTest.ombu'"
+
+	| outputLog changeList |
+	changeList := (self ombuEntriesFromFile: aFileName asFileReference) asOrderedCollection.
+	1 to: changeList size - 1 do: [ :inx | 
+		(changeList at: inx) content class == EpBehaviorCommentChange
+			ifTrue: [ (changeList at: inx + 1) content class == EpClassAddition
+					ifTrue: [ | tmp |
+						Transcript
+							cr;
+							show: 'Switched ' , (changeList at: inx) content printString , ' with ' , (changeList at: inx + 1) content printString.
+						tmp := changeList at: inx.
+						changeList at: inx put: (changeList at: inx + 1).
+						changeList at: inx + 1 put: tmp ] ] ].
+	outputLog := EpLog newWithStore: (OmStoreFactory current named: aFileName asFileReference base , '_FX' inDirectory: aFileName asFileReference absolutePath parent asFileReference).
+	^ EpOmbuExporter new
+		outputLog: outputLog;
+		fileOut: changeList
+]
+
+{ #category : #accessing }
+ExperimentLauncher class >> intermediateSave [
+	"self intermediateSave"
+<script>
+	^ intermediateSave
+]
+
+{ #category : #accessing }
+ExperimentLauncher class >> intermediateSave: anExperimentLauncher [
+	"self intermediateSave: self lastRun"
+	
+	intermediateSave := anExperimentLauncher
+]
+
+{ #category : #accessing }
+ExperimentLauncher class >> lastRun [
+	lastRuns isNotEmpty
+	ifTrue: [ ^ lastRuns last ]
+	ifFalse: [  ^ nil ]
+	
+]
+
+{ #category : #accessing }
+ExperimentLauncher class >> lastRunAt: anInt [
+	lastRuns size >= anInt
+	ifTrue: [ ^ lastRuns at: anInt ]
+	ifFalse: [  ^ nil ]
+	
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> loadChangesIn: ombuFilename [
+	| changeList |
+	changeList := (self ombuEntriesFromFile: ombuFilename asFileReference) asOrderedCollection.
+	UIManager default
+		displayProgress: 'loading change '
+		from: 1
+		to: changeList size
+		during: [ :bar |
+			changeList do: [ :ombChg |
+				bar label: 'loading change ' , (ombChg tagAt: #self) localName.
+				(ombChg content isCodeChange)
+					ifTrue: [ ombChg content applyCodeChange ].
+				bar increment
+			].
+		]
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: endNumber [
+
+	(self ombuEntriesFromFile: ombuFilename asFileReference) asOrderedCollection do: [ :ombChg |
+		( ( (startNumber to: endNumber) includes: ((ombChg tagAt: #self) localName asInteger) )
+			and: [ ombChg content isCodeChange ] )
+			ifTrue: [ ombChg content applyCodeChange ]
+	]
+]
+
+{ #category : #'instance creation' }
+ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames [
+	"self onOmbuFiles: {
+		'ForwardChainer/ForwardChainer2.ombu' .
+		'ForwardChainer/ForwardChainer3.ombu' .
+		'ForwardChainer/ForwardChainer4.ombu' .
+		'ForwardChainer/ForwardChainer5.ombu' .
+		} logFileName: 'ForwardChainer_LOG'
+	withPackages: {#IABasic . #ConfigurationOfCloudforkAWS}"
+
+	| logfileRef changes fileRef |
+	changes := OrderedCollection new.
+	aListOfFileNames
+		do: [ :fileName | 
+			fileRef := fileName asFileReference.
+			fileRef exists
+				ifTrue:
+					[ changes addAll: (self ombuEntriesFromFile: fileName asFileReference)	" collect: [ :om | om content ]" ] ].
+	logfileRef := aLogFileName asFileReference.
+	lastRuns
+		add:
+			(self new
+				logFileReference: logfileRef;
+				packages: packageNames;
+				changeList: changes;
+				yourself).
+	^ self lastRun
+]
+
+{ #category : #'instance creation' }
+ExperimentLauncher class >> resetLastRun [
+	"self resetLastRun"
+	lastRuns := OrderedCollection new
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runScenarioPillar [
+	"self runScenarioPillar"
+
+	self runScenarioPillar: {  '3' . '4' . '5' . '6'. '7' . '8' . '9' . '10' . '11' . '12'. '13' . '14' . '16' . '17' . '18'. '19' . '20' . '21' . '22' . '24'. '25' . '27' . '28' . '29' . '30'  }
+
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runScenarioPillar: aCollection [
+	"self runScenarioPillar: (1 to: 9)"
+
+	| el |
+
+	self resetLastRun.
+	aCollection do: [ :i |
+		el := self
+			onOmbuFiles: { 'ombu-sessions/pharo' , i asString , '.ombu' }
+			logFileName: 'pillar' , i asString , '.log'
+			withPackages: {#'Pillar-Tests-Cli' . #'Pillar-PetitPillar' . #'Pillar-ExporterDeckJS' .
+				#'Pillar-Tests-ExporterLaTeX' . #'Pillar-Pharo-Tools' . #'Pillar-Tests-Model'.
+				#'Pillar-ExporterBeamer' . #'Pillar-GitBook' . #'Pillar-ExporterHTML' .
+				#'Pillar-Tests-ExporterEPub' . #'Pillar-Tests-ExporterBeamer'.
+				#'Pillar-Cli-PillarVersion' . #'Pillar-Tests-ExporterAsciiDoc' . #'Pillar-ExporterEPub' .
+				#'Pillar-ExporterMarkdown' . #'Pillar-ExporterLaTeX'.
+				#'Pillar-ExporterPillar' . #'Pillar-Project' . #'Pillar-Tests-ExporterCore' .
+				#'Pillar-Tests-ExporterText' . #'Pillar-Tests-BuildPipeline'.
+				#'Pillar-Tests-PetitPillar' . #'Pillar-Tests-ExporterDeckJS' .
+				#'Pillar-Tests-ExporterPillar' . #'Pillar-ExporterAsciiDoc' .
+				#'Pillar-Tests-ExporterMarkdown'.
+				#'Pillar-Tests-ExporterHTML' . #'Pillar-BuildPipeline' . #'Pillar-ExporterCore' .
+				#'Pillar-ExporterText' . #'Pillar-Model' . #'Pillar-Cli'}.
+
+			el
+				prepare: false ;
+				run ;
+				terminate.
+			self saveImage
+		]
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runScenarioPostgreSQL [
+	self runScenarioPostgreSQL: (1 to: 4)
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
+	| el |
+
+	self resetLastRun.
+	aCollection do: [ :i |
+		el := self
+			onOmbuFiles: { 'ombu-sessions/postgresql' , i asString ,  '.ombu' }
+			logFileName: 'postgreSQL' , i asString ,  '.log'
+			withPackages: { #'PostgreSQL-AST' . #'PostgreSQL-Parser-Core' . #'PostgreSQL-Parser-Errors'
+				. #'PostgreSQL-Parser-Others' . #'PostgreSQL-Parser-Tests' }.
+
+		el
+			prepare: false ;
+			run;
+			terminate.
+		self saveImage
+	]
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioForwardChainerEx [
+	"self runTestScenarioForwardChainerEx"
+
+	| el |
+	<script>
+	self resetLastRun.
+	2 to: 5 do: [ :i || ombFile logFile |
+		ombFile := 'ForwardChainerEx/ombu-sessions/ForwardChainer' , i asString , '.ombu'.
+		logFile := 'ForwardChainerEx' , i asString , '.log'.
+		el := self
+			onOmbuFiles: {ombFile}
+			logFileName: logFile
+			withPackages: {'IABasic'}.
+		el
+			prepare: (i = 2) "Remove package if loading the first ombu file";
+			run ;
+			terminate.
+		SmalltalkImage current snapshot: true andQuit: false.
+	]
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioLanEx [
+	"self runTestScenarioLanEx"
+
+	<script>
+	| el |
+	EpMonitor current disable.
+	self resetLastRun.
+	1 to: 2 do: [ :i | 
+		| ombFile logFile |
+		ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_0'
+			, i asString , '.ombu'.
+		logFile := 'LANSimulation' , i asString , '.log'.
+		el := self
+			onOmbuFiles: {ombFile}
+			logFileName: logFile
+			withPackages: {'LANSimulation'}.
+		el
+			prepare: i = 1;
+			"if i=1, erase LANSimulation package first, otherwise keep it"
+				run;
+			terminate.
+		SmalltalkImage current snapshot: true andQuit: false ].
+	EpMonitor current enable
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioLanExQuick [
+	"self runTestScenarioLanEx"
+
+	<script>
+	| el ombFile logFile |
+	EpMonitor current disable.
+	self resetLastRun.
+	ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_01.ombu'.
+	logFile := 'LANSimulation1.log'.
+	el := self
+		onOmbuFiles: {ombFile}
+		logFileName: logFile
+		withPackages: {'LANSimulation'}.
+	el
+		prepare: true;
+		run;
+		terminate.
+	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioMooseQuery [
+	"self runTestScenarioMooseQuery"
+
+	self runTestScenarioMooseQuery: (1 to: 3)
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioMooseQuery: aCollection [
+	"self runTestScenarioMooseQuery: #( 1 2 3 )"
+
+	| el |
+	self resetLastRun.
+	aCollection do: [ :i |
+		el := self
+			onOmbuFiles: { 'ombu-sessions/MooseQuery' , i asString , '.ombu' }
+			logFileName: 'MooseQuery' , i asString , '.log'
+			withPackages:
+				{#'Moose-Core' . #'Moose-Query' . #'Moose-Query-Test' . #'Moose-Query-Extensions'.
+				#'Famix-Core' . #'Famix-Extensions' . #'Famix-Implementation' . #'Fame-Core'.
+				#'Moose-SmalltalkImporter' . #'Moose-Tests-Core' . #'Fame-SmalltalkBinding'.
+				#'Moose-TestResources-KGB-P4FullInteracted' . #'Moose-TestResources-KGB-P5FullReferee'.
+				#'Moose-TestResources-KGB-P7ReferencerReferee'.
+				#'Fame-Tests-Core' . #'Moose-Tests-SmalltalkImporter-KGB'}.
+		el
+			prepare: false;
+			run;
+			terminate.
+		self saveImage
+	]
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioPheme [
+	"self runTestScenarioPheme"
+	self runTestScenarioPheme: (1 to: 4)
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioPheme: aCollection [
+	"self runTestScenarioPheme: (1 to: 4)"
+
+	| el phemeName |
+	
+	phemeName := 'Phe' , 'me'.  "So that SmartTest does not see this method as using Pheme package"
+	self resetLastRun .
+
+	aCollection do: [ :i |
+		el := self
+			onOmbuFiles: { 'ombu-sessions/Pheme' , i asString , '.ombu' }
+			logFileName: phemeName , i asString , '.log'
+			withPackages: { phemeName asSymbol }.
+		el
+			prepare: (i = 1) ;  "if i=1, erase Pheme package first, otherwise keep it"
+			run ;
+			terminate.
+		"self saveImage ."
+	]
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> saveImage [
+	Smalltalk garbageCollect.
+	(Delay forSeconds: 5) wait.  "take a break before saving image to avoid bug that could corrupt it"
+	SmalltalkImage current snapshot: true andQuit: false
+]
+
+{ #category : #accessing }
+ExperimentLauncher class >> saveIntermediately [
+	<script>
+	self intermediateSave: self lastRun.
+	^intermediateSave 
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> sortOmbuFilesIn: aDirectoryName [
+	"Some projects store a whole suite of epicea sessions and a series of onbu files. Epicea relies on the time stamps on these files to sort them but these are not reliable when they are reconstructed from git, previous epicea sessions etc. That is why we go over all epicea files in a directory and take the first entry -- these contain reliable time stamps"
+
+	"self sortOmbuFilesIn: 'MooseQuery'"
+
+	"self sortOmbuFilesIn: 'Pillar'"
+
+	| dirNamed dir changeList outputLog |
+	Transcript clear.
+	dirNamed := FileSystem disk workingDirectory path / aDirectoryName.
+	changeList := OrderedCollection new: 200.
+	dir := dirNamed asFileReference.
+	dir files
+		do: [ :aFile | 
+			Transcript
+				cr;
+				show: aFile fullName.
+			changeList addAll: (self ombuEntriesFromFile: aFile asFileReference) ].
+	changeList := changeList sort: [ :omEntry1 :omEntry2 | (omEntry1 tagAt: #time) < (omEntry2 tagAt: #time) ].
+	Transcript
+		cr;
+		show: 'sorted'.
+	outputLog := EpLog newWithStore: (OmStoreFactory current named: aDirectoryName , ' _SORTED' inDirectory: FileSystem disk workingDirectory).
+	^ EpOmbuExporter new
+		outputLog: outputLog;
+		fileOut: changeList
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> sortPillarFiles [
+	"The ombu files created during the refactoring session were generated from git and the timestamps on the files were botched. This is an attempt to recreate the sort order baed on the internal timestamps"
+
+	"self sortPillarFiles"
+
+	<script>
+	| org |
+	"	org := {{'PillarXX01.ombu' . '2017-11-07T11:15:50.450278+01:00'}.
+	{'PillarXX02.ombu' . '2017-11-06T15:30:59.779584+01:00'}.
+	{'PillarXX03.ombu' . '2017-11-07T11:18:51.346267+01:00'}.
+	{'PillarXX04.ombu' . '2017-11-07T11:17:37.015213+01:00'}.
+	{'PillarXX05.ombu' . '2017-11-07T14:03:03.372589+01:00'}.
+	{'PillarXX06.ombu' . '2017-11-07T13:58:23.793493+01:00'}.
+	{'PillarXX07.ombu' . '2017-11-07T11:22:24.209009+01:00'}.
+	{'PillarXX08.ombu' . '2017-11-06T15:34:35.240547+01:00'}.
+	{'PillarXX09.ombu' . '2017-11-06T17:17:22.581029+01:00'}.
+	{'PillarXX10.ombu' . '2017-11-06T16:39:18.892635+01:00'}.
+	{'PillarXX11.ombu' . '2017-11-07T11:32:49.440137+01:00'}.
+	{'PillarXX12.ombu' . '2017-11-06T10:52:20.788082+01:00'}.
+	{'PillarXX13.ombu' . '2017-11-06T16:58:29.886854+01:00'}.
+	{'PillarXX14.ombu' . '2017-11-06T15:44:02.843297+01:00'}.
+	{'PillarXX15.ombu' . '2017-11-07T11:50:33.850412+01:00'}.
+	{'PillarXX16.ombu' . '2017-11-06T11:11:08.279216+01:00'}.
+	{'PillarXX17.ombu' . '2017-11-06T15:09:53.611686+01:00'}.
+	{'PillarXX18.ombu' . '2017-11-06T15:09:53.611686+01:00'}.
+	{'PillarXX19.ombu' . '2017-11-07T09:47:06.331089+01:00'}.
+	{'PillarXX20.ombu' . '2017-11-07T11:10:40.559416+01:00'}.
+	{'PillarXX21.ombu' . '2017-11-06T16:36:09.377977+01:00'}.
+	{'PillarXX22.ombu' . '2017-11-06T11:16:42.015388+01:00'}.
+	{'PillarXX23.ombu' . '2017-11-06T11:19:11.986566+01:00'}.
+	{'PillarXX24.ombu' . '2017-11-06T17:01:24.143892+01:00'}.
+	{'PillarXX25.ombu' . '2017-11-07T22:55:58.474604+01:00'}.
+	{'PillarXX26.ombu' . '2017-11-07T11:48:41.519522+01:00'}.
+	{'PillarXX27.ombu' . '2017-11-07T12:09:47.959427+01:00'}.
+	{'PillarXX28.ombu' . '2017-11-06T13:49:46.365946+01:00'}.
+	{'PillarXX29.ombu' . '2017-11-06T17:52:27.413435+01:00'}.
+	{'PillarXX30.ombu' . '2017-11-06T18:13:19.597156+01:00'}}."
+	org := {{'Pillar_01.ombu' . '2017-11-06T10:52:20.788082+01:00'}.
+	{'Pillar_02.ombu' . '2017-11-06T11:11:08.279216+01:00'}.
+	{'Pillar_03.ombu' . '2017-11-06T11:16:42.015388+01:00'}.
+	{'Pillar_04.ombu' . '2017-11-06T11:19:11.986566+01:00'}.
+	{'Pillar_05.ombu' . '2017-11-06T13:49:46.365946+01:00'}.
+	{'Pillar_06.ombu' . '2017-11-06T10:51:25.642111+01:00'}.
+	{'Pillar_07.ombu' . '2017-11-06T15:09:53.611686+01:00'}.
+	{'Pillar_08.ombu' . '2017-11-06T15:30:59.779584+01:00'}.
+	{'Pillar_09.ombu' . '2017-11-06T15:34:35.240547+01:00'}.
+	{'Pillar_10.ombu' . '2017-11-06T15:44:02.843297+01:00'}.
+	{'Pillar_11.ombu' . '2017-11-06T16:36:09.377977+01:00'}.
+	{'Pillar_12.ombu' . '2017-11-06T16:39:18.892635+01:00'}.
+	{'Pillar_13.ombu' . '2017-11-06T16:58:29.886854+01:00'}.
+	{'Pillar_14.ombu' . '2017-11-06T17:01:24.143892+01:00'}.
+	{'Pillar_15.ombu' . '2017-11-06T17:17:22.581029+01:00'}.
+	{'Pillar_16.ombu' . '2017-11-06T17:52:27.413435+01:00'}.
+	{'Pillar_17.ombu' . '2017-11-06T18:13:19.597156+01:00'}.
+	{'Pillar_18.ombu' . '2017-11-07T09:47:06.331089+01:00'}.
+	{'Pillar_19.ombu' . '2017-11-07T11:10:40.559416+01:00'}.
+	{'Pillar_20.ombu' . '2017-11-07T11:15:50.450278+01:00'}.
+	{'Pillar_21.ombu' . '2017-11-07T11:17:37.015213+01:00'}.
+	{'Pillar_22.ombu' . '2017-11-07T11:18:51.346267+01:00'}.
+	{'Pillar_23.ombu' . '2017-11-07T11:22:24.209009+01:00'}.
+	{'Pillar_24.ombu' . '2017-11-07T11:32:49.440137+01:00'}.
+	{'Pillar_25.ombu' . '2017-11-07T11:48:41.519522+01:00'}.
+	{'Pillar_26.ombu' . '2017-11-07T11:50:33.850412+01:00'}.
+	{'Pillar_27.ombu' . '2017-11-07T12:09:47.959427+01:00'}.
+	{'Pillar_28.ombu' . '2017-11-07T13:58:23.793493+01:00'}.
+	{'Pillar_29.ombu' . '2017-11-07T14:03:03.372589+01:00'}.
+	{'Pillar_30.ombu' . '2017-11-07T22:55:58.474604+01:00'}}.
+	org := org collect: [ :twoElements | Array with: (twoElements at: 1) with: (DateAndTime fromString: (twoElements at: 2)) ].
+	org := org sort: [ :m1 :m2 | (m1 at: 2) < (m2 at: 2) ].
+	^ org collect: [ :twoElements | twoElements at: 1 ]
+]
+
+{ #category : #utilities }
+ExperimentLauncher class >> timedRun: aScenarioSelector csvBaseFileName: aFileName [
+	"self timedRun: #runTestScenario csvBaseFileName: 'PharoLanTest'"
+
+	| stopwatch |
+	self flag: 'Generated by Eleonore: Remove use of xxDynamic and use a Set instead and a generic method'.
+	self assert: (aScenarioSelector isKindOf: Symbol).
+	self assert: (self respondsTo: aScenarioSelector).
+	Transcript clear.
+	stopwatch := Stopwatch new activate.
+	Transcript
+		show: 'Launching ...';
+		show: stopwatch printString.
+	stopwatch start.
+	self
+		includeStaticAnalysis: true;
+		includeDynamicAnalysis: false.
+	self perform: aScenarioSelector.
+	self lastRun measurements exportToCSV: aFileName , '_STATIC.csv'.
+	self saveIntermediately.
+	self
+		includeStaticAnalysis: false;
+		includeDynamicAnalysis: true.
+	self perform: aScenarioSelector.
+	self lastRun measurements exportToCSV: aFileName , '_DYNAMIC.csv'.
+	stopwatch end.
+	Transcript
+		cr;
+		show: 'Terminating ...';
+		show: stopwatch printString
+]
+
+{ #category : #'oracle creation' }
+ExperimentLauncher >> addToOracle: aTest [
+	| singleTestCaseSuite singleTestCaseWrapper methodUnderTest |
+	
+	methodUnderTest := currentChange content methodAffected
+		compiledMethod methodReference.
+	
+	singleTestCaseSuite := TestSuite
+		named: 'Single Test Case for ' , aTest selector.
+	singleTestCaseSuite addTest: aTest.
+	
+	singleTestCaseWrapper := SmTTestCoverage new
+		finder: (smTFinders at: #dynamic) smtFinder;
+		initializeOn: methodUnderTest.
+	
+	[ singleTestCaseWrapper install.
+	[ singleTestCaseSuite run ]
+		ensure: [ singleTestCaseWrapper uninstall ] ] valueUnpreemptively.
+	
+	singleTestCaseWrapper hasRun
+		ifTrue: [ self
+				addToTestResultCovered: singleTestCaseWrapper reference fullName
+				byTest: aTest ]
+]
+
+{ #category : #'oracle creation' }
+ExperimentLauncher >> addToTestResultCovered: methodUnderTest byTest: aTest [
+	| testCase |
+	testCase := (aTest class lookupSelector: aTest selector)
+		methodReference fullName.
+	oracle
+		at: methodUnderTest
+		ifPresent: [ :set | set add: testCase ]
+		ifAbsentPut: (Set with: testCase)
+]
+
+{ #category : #logging }
+ExperimentLauncher >> allTests [
+	| allTests |
+	allTests := IdentitySet new.
+	collectionOfTestSuites
+		do: [ :aTestSuite | 
+			aTestSuite flatCollectTests
+				do:
+					[ :aTest | allTests add: (aTest class name , '>>' , aTest selector) asSymbol ] ].
+	^ allTests
+]
+
+{ #category : #'actions-public' }
+ExperimentLauncher >> cacheSize: smartFinder [
+		| cacheSize |
+	cacheSize := smartFinder currentCache sizeInMemory.
+	smartFinder currentCache keysAndValuesDo: [ :key :value | cacheSize := cacheSize + key sizeInMemory + value sizeInMemory ].
+	cacheSize := (cacheSize + 511) // 1024.	"Convert to kilo-bytes rounded up"
+	self measurements cacheSize: cacheSize.
+	^ cacheSize
+]
+
+{ #category : #private }
+ExperimentLauncher >> calculateDiffBetween: oldString and: newString [
+	| diff diffLineCount |
+	diffLineCount := 0.
+	diff := TextDiffBuilder from: oldString to: newString.
+	diff
+		patchSequenceDoIfMatch: [ :string |  ]
+		ifInsert: [ :string | 
+			diffLineCount := diffLineCount + string lineCount ]
+		ifRemove: [ :string | 
+			diffLineCount := diffLineCount + string lineCount ].
+	^ diffLineCount
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> changeList [
+	^ changeList
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> changeList: aCollectionOfEpCodeChange [
+	aCollectionOfEpCodeChange assert: aCollectionOfEpCodeChange isSequenceable description: 'Expected a collection for #changeList:'.
+	changeList := aCollectionOfEpCodeChange
+]
+
+{ #category : #private }
+ExperimentLauncher >> changeShouldBeApplied [
+	"apply when
+		- not a protocol removal
+		- not a methodModification, or else it should not introduce a 'self halt'
+		- not a monticello save or load.
+	"
+	| epChange |
+	epChange := currentChange content.
+	^ (((epChange class ~= EpProtocolRemoval) and: [
+			(epChange class ~= EpMethodModification) or: [
+				(epChange newSourceCode includesSubstring: 'self halt') not
+			]
+		]) and: [ epChange class ~= EpMonticelloVersionSave  ]) and: [ epChange class ~= EpMonticelloVersionsLoad ]
+]
+
+{ #category : #private }
+ExperimentLauncher >> collectMeasurementsCodechurn [
+	"TECHNICAL DEBTH: This should be refctored onto EPCodeChange"
+
+	| linesOfCode epChange changeSymbol |
+	epChange := currentChange content.
+	epChange isCodeChange
+		ifFalse: [ ^ self ].
+	epChange class = EpBehaviorCommentChange
+		ifTrue: [ linesOfCode := epChange newComment lineCount.
+			changeSymbol := #linesModified ].
+
+	"4 ? What is this magic number ?"
+	epChange class = EpClassAddition
+		ifTrue: [ linesOfCode := 4.
+			changeSymbol := #linesAdded ].
+	epChange class = EpClassModification
+		ifTrue: [ linesOfCode := 4.
+			changeSymbol := #linesModified ].
+	epChange class = EpClassRemoval
+		ifTrue: [ linesOfCode := 4.
+			changeSymbol := #linesDeleted ].
+	epChange class = EpMethodAddition
+		ifTrue: [ linesOfCode := epChange sourceCode lineCount.
+			changeSymbol := #linesAdded ].
+	epChange class = EpMethodModification
+		ifTrue: [ linesOfCode := self
+				calculateDiffBetween: epChange oldSourceCode
+				and: epChange newSourceCode.
+			changeSymbol := #linesModified ].
+	epChange class = EpMethodRemoval
+		ifTrue: [ linesOfCode := epChange sourceCode lineCount.
+			changeSymbol := #linesDeleted ].
+	changeSymbol
+		ifNotNil: [ measurements
+				incrementChange: changeSymbol
+				withAmount: linesOfCode
+				inTest: self currentChangeIsTestCaseChange ].
+	^ self
+]
+
+{ #category : #'oracle creation' }
+ExperimentLauncher >> createOracle [
+	"self runCreationOfOracle"
+
+	collectionOfTestSuites
+		do:
+			[ :aTestSuite | aTestSuite flatCollectTests do: [ :aTest | self addToOracle: aTest ] ].
+	logger logCreatedOracle: oracle forChange: currentChange content
+]
+
+{ #category : #private }
+ExperimentLauncher >> currentChangeIsTestCaseChange [
+	| rc epChange |
+	epChange := currentChange content.
+	rc := nil.
+	epChange isEpClassChange
+		ifTrue: [ rc := epChange behaviorAffected realClass ].
+	epChange isEpMethodChange
+		ifTrue: [ rc := epChange methodAffected realClass ].
+	^ rc isNil
+		ifTrue: [ false ]
+		ifFalse: [ rc isTestCase ]
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> currentChangeType [
+	^ currentChange content class name allButFirst: 2
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> currentMethodAffectedName [
+	^ currentChange content methodAffected fullName
+]
+
+{ #category : #exporting }
+ExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
+	measurements exportToCSVStream: stream withHeader: aBoolean
+]
+
+{ #category : #initialization }
+ExperimentLauncher >> initialize [
+	"self new run"
+	super initialize.
+	changeList := {}.
+	oracle := IdentityDictionary new.
+	measurements := ExperimentLauncherMeasurements new.
+	logger launcherMeasurements: measurements.
+
+]
+
+{ #category : #logging }
+ExperimentLauncher >> logMeasurementsPrecision [
+	| smarttestAdvice testsInOracle allTests |
+	allTests := self allTests.
+	testsInOracle := self testsInOracle.
+	smTResults
+		keysAndValuesDo: [ :key :results | 
+			smarttestAdvice := IdentitySet new.
+			smarttestAdvice
+				addAll: (results values flattened intersection: self allTests).
+			logger
+				logCollectingMeasurementsPrecision: key;
+				logTruePositives: (smarttestAdvice intersection: testsInOracle)
+					forFinder: key;
+				logFalsePositives: (smarttestAdvice difference: testsInOracle)
+					forFinder: key;
+				logFalseNegatives: (testsInOracle difference: smarttestAdvice)
+					forFinder: key;
+				logTrueNegatives: ((allTests difference: smarttestAdvice) difference: testsInOracle)
+					forFinder: key ]
+]
+
+{ #category : #deprecated }
+ExperimentLauncher >> logTimeSavings [
+	"See ExperimentLauncher>>manageAnalysis"
+
+	| time reduced smarttestAdvice |
+	smTResults
+		keysAndValuesDo: [ :key :results | 
+			smarttestAdvice := IdentitySet new.
+			results
+				keysAndValuesDo:
+					[ :anEpChange :aCollectionOfMethodReferences | smarttestAdvice addAll: aCollectionOfMethodReferences ].
+			reduced := self createTestSuite: smarttestAdvice.
+			Smalltalk garbageCollect.
+			time := [ reduced run ] timeToRun.
+			time := time asMilliSeconds.
+			self measurements setReducedTestTime: time forFinder: key ]
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> manageAnalysis [
+	self performAnalyses.
+	self logMeasurementsPrecision
+	"self logTimeSavings"
+]
+
+{ #category : #'oracle creation' }
+ExperimentLauncher >> manageBuildOracle [
+	logger log: '** creating Oracle ' crBefore: true indentation: 1.
+	self createTestcases. "Because applying change may have added/removed/changed a test"
+	self createOracle
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> manageChange [
+	self processChange.
+	self collectMeasurementsCodechurn.
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> measurements [
+	^ measurements 
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> noSmartTestAnalysis [
+	logger logNoSmarttestAnalysis.
+	self changeShouldBeApplied
+		ifTrue: [ self manageChange ]
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> packages [
+	"For convenience. Packages should be in dataSet"
+
+	^ packages
+]
+
+{ #category : #private }
+ExperimentLauncher >> performAnalyses [
+	super performAnalyses.
+	logger logAnalysis: smTResults
+]
+
+{ #category : #private }
+ExperimentLauncher >> performAnalysis: aSymbol [
+	smTResults
+		at: aSymbol
+		at: currentChange content
+		put: (super performAnalysis: aSymbol).
+	logger logCacheSize: (self cacheSize: (smTFinders at: aSymbol))
+]
+
+{ #category : #'actions-public' }
+ExperimentLauncher >> prepare [
+	self prepare: true
+]
+
+{ #category : #'actions-public' }
+ExperimentLauncher >> prepare: removePackagesFirst [
+	removePackagesFirst
+		ifTrue: [ self packages
+				do: [ :pckgName | 
+					[ "if the package already exists, remove it" (RPackage organizer packageNamed: pckgName) removeFromSystem ]
+						on: KeyNotFound
+						do: [ "was not found so it is alright" ] ] ].
+	logger openlog
+]
+
+{ #category : #'actions-public' }
+ExperimentLauncher >> resetCollectingResults [
+	smTResults
+		keysDo: [ :key | smTResults at: key put: IdentityDictionary new ].
+	oracle := IdentityDictionary new
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> run [
+	"self runTestScenario"
+
+	| barLabel |
+	barLabel := 'SmartTest Experiment ('
+		, logger logFileReference basename , ')'.
+	logger logCSVHeader: measurements columnNames.
+	UIManager default
+		displayProgress: barLabel
+		from: 1
+		to: changeList size
+		during: [ :bar | 
+			changeList
+				do: [ :anOmEntry | 
+					currentChange := anOmEntry.
+					logger
+						logStartOfCodeChange: currentChange content
+						number: self changeNumber.
+					bar label: barLabel , ' change:' , self changeNumber asString.
+					self smarttestInterventionNeeded
+						ifTrue: [ self runSmartTestAnalysis ]
+						ifFalse: [ self noSmartTestAnalysis ].
+					bar increment ] ].
+	logger logFinalResults.
+	measurements removeLastRowIfEmpty
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> runAnalysisThenChange [
+	self manageBuildCache.
+	self manageBuildOracle.
+	self manageAnalysis.
+	self manageChange
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> runChangeThenAnalysis [
+	self manageBuildCache.
+	self manageChange.
+	self manageBuildOracle.
+	self manageAnalysis
+]
+
+{ #category : #runnig }
+ExperimentLauncher >> runSmartTestAnalysis [
+	self resetCollectingResults.
+	measurements
+		initializeRow: self changeNumber
+		change: self currentMethodAffectedName
+		type: self currentChangeType.
+	self changeMustBePerformedAfterAnalysis
+		ifTrue: [ self runAnalysisThenChange ]
+		ifFalse: [ self runChangeThenAnalysis ].
+	logger logCSVRow: measurements lastRow values.
+	measurements startNewRow
+]
+
+{ #category : #private }
+ExperimentLauncher >> smarttestInterventionNeeded [
+	^ self smarttestInterventionNeeded: currentChange
+]
+
+{ #category : #'actions-public' }
+ExperimentLauncher >> terminate [
+	logger closelog.
+	measurements visualisePrecision
+]
+
+{ #category : #logging }
+ExperimentLauncher >> testsInOracle [
+	^ IdentitySet
+		withAll:
+			(oracle at: currentChange content methodAffected fullName ifAbsent: {})
+]
