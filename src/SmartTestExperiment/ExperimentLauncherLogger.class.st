@@ -195,7 +195,7 @@ ExperimentLauncherLogger >> logTruePositives: aSetOfMethodSelectors forFinder: a
 
 { #category : #'final logging' }
 ExperimentLauncherLogger >> symbolToString: aSymbol [
-	"Utility -- Should not be here:
+	"Utility -- Should not be here -- Twin method in Visualizer:
 	 #aSymbolToBeTransformed --> 'A Symbol To Be Transformed' "
 
 	| stream |

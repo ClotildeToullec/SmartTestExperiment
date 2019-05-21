@@ -564,7 +564,7 @@ ExperimentLauncher >> addToTestResultCovered: methodUnderTest byTest: aTest [
 		ifAbsentPut: (Set with: testCase)
 ]
 
-{ #category : #logging }
+{ #category : #accessing }
 ExperimentLauncher >> allTests [
 	| allTests |
 	allTests := IdentitySet new.
@@ -576,7 +576,7 @@ ExperimentLauncher >> allTests [
 	^ allTests
 ]
 
-{ #category : #'actions-public' }
+{ #category : #accessing }
 ExperimentLauncher >> cacheSize: smartFinder [
 		| cacheSize |
 	cacheSize := smartFinder currentCache sizeInMemory.
@@ -710,12 +710,12 @@ ExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
 { #category : #initialization }
 ExperimentLauncher >> initialize [
 	"self new run"
+
 	super initialize.
 	changeList := {}.
 	oracle := IdentityDictionary new.
 	measurements := ExperimentLauncherMeasurements new.
-	logger launcherMeasurements: measurements.
-
+	logger launcherMeasurements: measurements
 ]
 
 { #category : #logging }
@@ -740,7 +740,7 @@ ExperimentLauncher >> logMeasurementsPrecision [
 					forFinder: key ]
 ]
 
-{ #category : #deprecated }
+{ #category : #logging }
 ExperimentLauncher >> logTimeSavings [
 	"See ExperimentLauncher>>manageAnalysis"
 
@@ -758,7 +758,7 @@ ExperimentLauncher >> logTimeSavings [
 			self measurements setReducedTestTime: time forFinder: key ]
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> manageAnalysis [
 	self performAnalyses.
 	self logMeasurementsPrecision
@@ -772,7 +772,7 @@ ExperimentLauncher >> manageBuildOracle [
 	self createOracle
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> manageChange [
 	self processChange.
 	self collectMeasurementsCodechurn.
@@ -783,7 +783,7 @@ ExperimentLauncher >> measurements [
 	^ measurements 
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> noSmartTestAnalysis [
 	logger logNoSmarttestAnalysis.
 	self changeShouldBeApplied
@@ -797,13 +797,13 @@ ExperimentLauncher >> packages [
 	^ packages
 ]
 
-{ #category : #private }
+{ #category : #running }
 ExperimentLauncher >> performAnalyses [
 	super performAnalyses.
 	logger logAnalysis: smTResults
 ]
 
-{ #category : #private }
+{ #category : #running }
 ExperimentLauncher >> performAnalysis: aSymbol [
 	smTResults
 		at: aSymbol
@@ -828,14 +828,14 @@ ExperimentLauncher >> prepare: removePackagesFirst [
 	logger openlog
 ]
 
-{ #category : #'actions-public' }
+{ #category : #running }
 ExperimentLauncher >> resetCollectingResults [
 	smTResults
 		keysDo: [ :key | smTResults at: key put: IdentityDictionary new ].
 	oracle := IdentityDictionary new
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> run [
 	"self runTestScenario"
 
@@ -863,7 +863,7 @@ ExperimentLauncher >> run [
 	measurements removeLastRowIfEmpty
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> runAnalysisThenChange [
 	self manageBuildCache.
 	self manageBuildOracle.
@@ -871,7 +871,7 @@ ExperimentLauncher >> runAnalysisThenChange [
 	self manageChange
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> runChangeThenAnalysis [
 	self manageBuildCache.
 	self manageChange.
@@ -879,7 +879,7 @@ ExperimentLauncher >> runChangeThenAnalysis [
 	self manageAnalysis
 ]
 
-{ #category : #runnig }
+{ #category : #running }
 ExperimentLauncher >> runSmartTestAnalysis [
 	self resetCollectingResults.
 	measurements
@@ -900,11 +900,18 @@ ExperimentLauncher >> smarttestInterventionNeeded [
 
 { #category : #'actions-public' }
 ExperimentLauncher >> terminate [
+	| visualizer |
 	logger closelog.
-	measurements visualisePrecision
+	visualizer := ExperimentVisualizer new.
+	visualizer measurements: measurements rows.
+	smTFinders
+		keysDo: [ :key | visualizer visualizePrecisionForFinder: key ].
+	visualizer
+		visualiseCacheSizeBarChart;
+		visualiseTestExecutionTime
 ]
 
-{ #category : #logging }
+{ #category : #accessing }
 ExperimentLauncher >> testsInOracle [
 	^ IdentitySet
 		withAll:

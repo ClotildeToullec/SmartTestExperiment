@@ -59,11 +59,6 @@ ExperimentDataPoint >> falsePositive: anInt [
 ]
 
 { #category : #accessing }
-ExperimentDataPoint >> falseePositive [
-		^ fp
-]
-
-{ #category : #accessing }
 ExperimentDataPoint >> id [
 	^ id
 ]
@@ -91,9 +86,4 @@ ExperimentDataPoint >> truePositive [
 { #category : #accessing }
 ExperimentDataPoint >> truePositive: anInt [
 	tp := anInt
-]
-
-{ #category : #accessing }
-ExperimentDataPoint >> trueeNegative [
-		^ tn
 ]

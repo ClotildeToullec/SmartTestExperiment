@@ -209,7 +209,7 @@ AbstractStaticDynamicExperiment >> logFileReference: logfileRef [
 	logger logFileReference: logfileRef
 ]
 
-{ #category : #'smartTest analysis' }
+{ #category : #running }
 AbstractStaticDynamicExperiment >> manageBuildCache [
 	| ts |
 	self createTestcases.
@@ -240,12 +240,12 @@ AbstractStaticDynamicExperiment >> packages: aCollectionOfCategoryNames [
 	packages := aCollectionOfCategoryNames.
 ]
 
-{ #category : #private }
+{ #category : #running }
 AbstractStaticDynamicExperiment >> performAnalyses [
 	smTFinders keysDo: [ :key | self performAnalysis: key ]
 ]
 
-{ #category : #private }
+{ #category : #running }
 AbstractStaticDynamicExperiment >> performAnalysis: aSymbol [
 	^ ((smTFinders at: aSymbol)
 		researchTestsForMethod: currentChange content methodAffected compiledMethod)
