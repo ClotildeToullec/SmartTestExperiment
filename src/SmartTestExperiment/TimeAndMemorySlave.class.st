@@ -28,11 +28,11 @@ TimeAndMemorySlave >> applyChangeAndRunAnalyses [
 	self flag: 'Nicolas: not sure why we perform analyses here ?1?!?'.
 	self changeMustBePerformedAfterAnalysis
 		ifTrue: [ "method removal"
-			self performAnalyses.
+			self performAnalysis.
 			self processChange ]
 		ifFalse: [ "method addition or modification"
 			self processChange.
-			self performAnalyses ]
+			self performAnalysis ]
 ]
 
 { #category : #'experiment-preparation' }

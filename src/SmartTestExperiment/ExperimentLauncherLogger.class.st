@@ -72,8 +72,8 @@ ExperimentLauncherLogger >> logCollectingMeasurementsPrecision: aSymbol [
 { #category : #'analysis logging' }
 ExperimentLauncherLogger >> logDifferenceBetween: smartTestResults [
 	| difference |
-	difference := (smartTestResults at: #static) values
-		difference: (smartTestResults at: #dynamic) values.
+	difference := (smartTestResults values first) values
+		difference: (smartTestResults values second) values.
 	difference isEmpty
 		ifTrue: [ self
 				log: 'smarttestResults No Difference'
@@ -117,22 +117,12 @@ ExperimentLauncherLogger >> logFalsePositives: aSetOfMethodSelectors forFinder: 
 ]
 
 { #category : #'final logging' }
-ExperimentLauncherLogger >> logFinalResults [
+ExperimentLauncherLogger >> logFinalResult: aSymbol forFinder: aFinderSymbol [
 	self
-		log: '-------------------------------------------------------------------'
+		log: (self symbolToString: aSymbol , aFinderSymbol capitalized) , ': '
 		crBefore: true
 		indentation: 0.
-	#(#totalStaticResults #totalDynamicResults #totalSourceCodeChurn #totalTestCodeChurn)
-		do: [ :symbol | self logFinalResults: symbol ]
-]
-
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> logFinalResults: aSymbol [
-	self
-		log: (self symbolToString: aSymbol) , ': '
-		crBefore: true
-		indentation: 0.
-	(measurements perform: aSymbol)
+	(measurements totalResultsForFinder: aFinderSymbol)
 		keysAndValuesDo: [ :key :value | 
 			self
 				log: (self symbolToString: key) , ' = ' , value printString
@@ -140,27 +130,49 @@ ExperimentLauncherLogger >> logFinalResults: aSymbol [
 				indentation: 1 ]
 ]
 
-{ #category : #deprecated }
-ExperimentLauncherLogger >> logTimeSavings [
+{ #category : #'final logging' }
+ExperimentLauncherLogger >> logFinalResultsForFinders: aSymbolCollection [
 	self
-		log:
-			'smarttestResults total test time = '
-				, measurements totalTestTime printString , ' milliseconds'
+		log: '-------------------------------------------------------------------'
 		crBefore: true
-		indentation: 2.
+		indentation: 0.
+	aSymbolCollection
+		do: [ :symbol | self logFinalResult: #totalResults forFinder: symbol ].
+	self
+		logTotalSourceCodeChurn;
+		logTotalTestCodeChurn
+]
+
+{ #category : #'execution time' }
+ExperimentLauncherLogger >> logTime: aDuration forFinder: aSymbol [
 	self
 		log:
-			'smarttestResults reduced test time (static) = '
-				, measurements reducedTestTimeStatic printString , ' milliseconds'
-		crBefore: true
-		indentation: 2.
-	self
-		log:
-			'smarttestResults reduced test time (dynamic) = '
-				, measurements reducedTestTimeDynamic printString
-				, ' milliseconds'
+			(self symbolToString: aSymbol) , ' test time = '
+				, aDuration printString , ' milliseconds'
 		crBefore: true
 		indentation: 2
+]
+
+{ #category : #'final logging' }
+ExperimentLauncherLogger >> logTotalSourceCodeChurn [
+	self log: 'Total Source Code Churn : ' crBefore: true indentation: 0.
+	measurements totalSourceCodeChurn
+		keysAndValuesDo: [ :key :value | 
+			self
+				log: (self symbolToString: key) , ' = ' , value printString
+				crBefore: true
+				indentation: 1 ]
+]
+
+{ #category : #'final logging' }
+ExperimentLauncherLogger >> logTotalTestCodeChurn [
+	self log: 'Total Test Code Churn : ' crBefore: true indentation: 0.
+	measurements totalTestCodeChurn
+		keysAndValuesDo: [ :key :value | 
+			self
+				log: (self symbolToString: key) , ' = ' , value printString
+				crBefore: true
+				indentation: 1 ]
 ]
 
 { #category : #'results logging' }

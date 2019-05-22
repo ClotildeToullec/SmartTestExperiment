@@ -42,10 +42,28 @@ ExperimentLauncherMeasurements class >> convertCamelcaseToTitle: aString [
 ]
 
 { #category : #'instance creation' }
-ExperimentLauncherMeasurements class >> new: nrOfElements [
-	"self new: 10"
-	
-	^ self new initialize: nrOfElements ; yourself
+ExperimentLauncherMeasurements class >> new: aFindersSymbolCollection [
+	| names |
+	names := OrderedCollection with: #id.
+	aFindersSymbolCollection
+		do: [ :symbol | 
+			names
+				addAll:
+					{(#truePositives , symbol capitalized).
+					(#falsePositives , symbol capitalized).
+					(#falseNegatives , symbol capitalized).
+					(#trueNegatives , symbol capitalized)} ].
+	names
+		addAll:
+			{#change . #changeType . #sourceLinesAdded . #sourceLinesDeleted.
+			#sourceLinesModified . #testLinesAdded . #testLinesDeleted.
+			#testLinesModified . #cacheSize . #totalTestTime . #reducedTestTimeStatic.
+			#reducedTestTimeDynamic}.
+	^ self new
+		columnNames: names asArray;
+		rows: OrderedCollection new;
+		startNewRow;
+		yourself
 ]
 
 { #category : #accessing }
@@ -59,11 +77,9 @@ ExperimentLauncherMeasurements >> columnNames [
 	^ columnNames
 ]
 
-{ #category : #private }
-ExperimentLauncherMeasurements >> createNewRow [
-	^ OrderedDictionary
-		newFromKeys: columnNames
-		andValues: (Array new: columnNames size withAll: 0)
+{ #category : #accessing }
+ExperimentLauncherMeasurements >> columnNames: anObject [
+	columnNames := anObject
 ]
 
 { #category : #exportToCSV }
@@ -109,20 +125,6 @@ ExperimentLauncherMeasurements >> incrementResult: aSymbol withAmount: anAmount 
 	row := rows last.
 	row at: aSymbol put: (row at: aSymbol) + anAmount.
 	^ row at: aSymbol
-]
-
-{ #category : #'initalize-release' }
-ExperimentLauncherMeasurements >> initialize [
-	super initialize.
-	columnNames := {#id . #truePositivesStatic . #falsePositivesStatic.
-	#falseNegativesStatic . #trueNegativesStatic . #truePositivesDynamic.
-	#falsePositivesDynamic . #falseNegativesDynamic . #trueNegativesDynamic.
-	#change . #changeType . #sourceLinesAdded . #sourceLinesDeleted.
-	#sourceLinesModified . #testLinesAdded . #testLinesDeleted.
-	#testLinesModified . #cacheSize . #totalTestTime . #reducedTestTimeStatic.
-	#reducedTestTimeDynamic}.
-	rows := OrderedCollection new.
-	rows add: self createNewRow
 ]
 
 { #category : #public }
@@ -194,19 +196,19 @@ ExperimentLauncherMeasurements >> printResult: aSymbolCollection on: aStream [
 						<< word capitalized;
 						space ];
 				<< ': ';
-				<< (rows totalAt: symbol);
+				<< (rows total: symbol);
 				<< ' - ' ].
 	aStream cr
 ]
 
-{ #category : #deprecated }
+{ #category : #'execution time' }
 ExperimentLauncherMeasurements >> reducedTestTimeDynamic [
-	^ self valueAtColumn: #reducedTestTimeDynamic
+	^ rows last at: #reducedTestTimeDynamic
 ]
 
-{ #category : #deprecated }
+{ #category : #'execution time' }
 ExperimentLauncherMeasurements >> reducedTestTimeStatic [
-	^ self valueAtColumn: #reducedTestTimeStatic
+	^ rows last at: #reducedTestTimeStatic
 ]
 
 { #category : #public }
@@ -225,6 +227,11 @@ ExperimentLauncherMeasurements >> rows [
 	^ rows
 ]
 
+{ #category : #accessing }
+ExperimentLauncherMeasurements >> rows: anObject [
+	rows := anObject
+]
+
 { #category : #queries }
 ExperimentLauncherMeasurements >> selectValuesLargerThan: aThreshold [
 	"ExperimentLauncher lastRun measurements selectValuesLargerThan: 100"
@@ -236,32 +243,33 @@ ExperimentLauncherMeasurements >> selectValuesLargerThan: aThreshold [
 				anySatisfy: [ :item | item isNumber and: [ item >= aThreshold ] ] ]
 ]
 
-{ #category : #public }
-ExperimentLauncherMeasurements >> setReducedTestTime: aDuration forFinder: aSymbol [
-	rows
-		at: #reducedTestTime , aSymbol capitalized
-		put: aDuration.
+{ #category : #'execution time' }
+ExperimentLauncherMeasurements >> setTestTime: aDuration forFinder: aSymbol [
+	rows last at: #reducedTestTime , aSymbol capitalized put: aDuration.
 	^ aDuration
 ]
 
 { #category : #public }
 ExperimentLauncherMeasurements >> startNewRow [
-
-	rows add: self createNewRow.
-
+	rows
+		add:
+			(OrderedDictionary
+				newFromKeys: columnNames
+				andValues: (Array new: columnNames size withAll: 0))
 ]
 
 { #category : #accessing }
-ExperimentLauncherMeasurements >> totalAt: aSymbol [
+ExperimentLauncherMeasurements >> total: aSymbol [
 	^ (rows collect: [ :row | row at: aSymbol ]) sum
 ]
 
 { #category : #accessing }
-ExperimentLauncherMeasurements >> totalDynamicResults [
+ExperimentLauncherMeasurements >> totalResultsForFinder: aSymbol [
 	^ OrderedDictionary new
 		addAll:
-			(#(#truePositivesDynamic #falsePositivesDynamic #falseNegativesDynamic #trueNegativesDynamic)
-				collect: [ :keyword | keyword -> (self totalAt: keyword) ]);
+			((#(#truePositives #falsePositives #falseNegatives #trueNegatives)
+				collect: [ :key | key , aSymbol capitalized ])
+				collect: [ :keyword | keyword -> (self total: keyword) ]);
 		yourself
 ]
 
@@ -271,19 +279,10 @@ ExperimentLauncherMeasurements >> totalSourceCodeChurn [
 	totalDict := OrderedDictionary new
 		addAll:
 			(#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified)
-				collect: [ :keyword | keyword -> (self totalAt: keyword) ]);
+				collect: [ :keyword | keyword -> (self total: keyword) ]);
 		yourself.
 	totalDict add: #totalSourceCodeChurn -> totalDict values sum.
 	^ totalDict
-]
-
-{ #category : #accessing }
-ExperimentLauncherMeasurements >> totalStaticResults [
-	^ OrderedDictionary new
-		addAll:
-			(#(#truePositivesStatic #falsePositivesStatic #falseNegativesStatic #trueNegativesStatic)
-				collect: [ :keyword | keyword -> (self totalAt: keyword) ]);
-		yourself
 ]
 
 { #category : #accessing }
@@ -292,24 +291,19 @@ ExperimentLauncherMeasurements >> totalTestCodeChurn [
 	totalDict := OrderedDictionary new
 		addAll:
 			(#(#testLinesAdded #testLinesDeleted #testLinesModified)
-				collect: [ :keyword | keyword -> (self totalAt: keyword) ]);
+				collect: [ :keyword | keyword -> (self total: keyword) ]);
 		yourself.
 	totalDict add: #totalTestCodeChurn -> totalDict values sum.
 	^ totalDict
 ]
 
-{ #category : #deprecated }
+{ #category : #'execution time' }
 ExperimentLauncherMeasurements >> totalTestTime [
-	^ self valueAtColumn: #totalTestTime
+	^ rows last at: #totalTestTime
 ]
 
-{ #category : #deprecated }
+{ #category : #'execution time' }
 ExperimentLauncherMeasurements >> totalTestTime: anAmount [
 	rows last at: #totalTestTime put: anAmount.
 	^ anAmount
-]
-
-{ #category : #deprecated }
-ExperimentLauncherMeasurements >> valueAtColumn: aColumnName [
-	^ rows last at: aColumnName
 ]

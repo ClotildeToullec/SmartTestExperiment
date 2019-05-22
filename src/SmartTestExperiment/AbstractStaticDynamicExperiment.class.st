@@ -18,7 +18,8 @@ Class {
 		'dataSet',
 		'smTResults',
 		'smTFinders',
-		'packages'
+		'packages',
+		'oracleFinder'
 	],
 	#classInstVars : [
 		'includeStaticAnalysis',
@@ -26,6 +27,26 @@ Class {
 	],
 	#category : #'SmartTestExperiment-analysis'
 }
+
+{ #category : #'instance creation' }
+AbstractStaticDynamicExperiment class >> defaultFinders [
+	| smTFinders |
+	smTFinders := Dictionary new.
+	smTFinders
+		at: #static
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTNoCacheStrategy new;
+				smtFinder: SmTSenderTestFinderStrategy new);
+		at: #dynamic
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTBasicCacheStrategy new;
+				smtFinder: SmTTestCoverageTestFinderStrategy new).
+	^ smTFinders
+]
 
 { #category : #accessing }
 AbstractStaticDynamicExperiment class >> includeDynamicAnalysis [
@@ -97,6 +118,36 @@ AbstractStaticDynamicExperiment class >> methodRefAsTestCase: aMethodReference [
 	^ testClass selector: testSelector
 ]
 
+{ #category : #'instance creation' }
+AbstractStaticDynamicExperiment class >> new [
+	^ self basicNew
+		smTFinders: self defaultFinders;
+		smTResults:
+			(Dictionary new
+				at: #static put: IdentityDictionary new;
+				at: #dynamic put: IdentityDictionary new);
+		initialize;
+		yourself
+]
+
+{ #category : #'instance creation' }
+AbstractStaticDynamicExperiment class >> new: aSmartFindersDictionary [
+	"aSmartFindersDictionary should have symbols for keys and SmartFinders for values"
+
+	aSmartFindersDictionary ifEmpty: [ ^ self new ].
+	^ self basicNew
+		smTFinders: aSmartFindersDictionary;
+		smTResults:
+			(Dictionary
+				newFromKeys: aSmartFindersDictionary keys
+				andValues:
+					(Array
+						new: aSmartFindersDictionary size
+						withAll: IdentityDictionary new));
+		initialize;
+		yourself
+]
+
 { #category : #running }
 AbstractStaticDynamicExperiment class >> ombuEntriesFromFile: ombFile [
 	^ (EpLog freshFromFile: ombFile) entries
@@ -143,49 +194,11 @@ AbstractStaticDynamicExperiment >> currentChange [
 { #category : #initialization }
 AbstractStaticDynamicExperiment >> initialize [
 	super initialize.
-
-	"Dicionary with all SmtFinders."
-	smTFinders := Dictionary new.
-	smTResults := Dictionary new.
-
-	"Not generic methods."
-	self initializeStaticFinder.
-	self initializeDynamicFinder.
-
-	"Coherent with ExperimentLauncher but not with TimeAndMem"
-	smTResults at: #static put: IdentityDictionary new.
-	smTResults at: #dynamic put: IdentityDictionary new.
 	currentChange := nil.
-	logger := ExperimentLauncherLogger new
-]
-
-{ #category : #initialization }
-AbstractStaticDynamicExperiment >> initializeDynamicFinder [
-	self
-		initializeSmartFinder: #dynamic
-		filter: SmTDefaultClassPackagesFilter new
-		cacheStrategy: SmTBasicCacheStrategy new
-		finder: SmTTestCoverageTestFinderStrategy new
-]
-
-{ #category : #initialization }
-AbstractStaticDynamicExperiment >> initializeSmartFinder: aSymbol filter: aSmTFilterStrategy cacheStrategy: aSmTCacheStrategy finder: aSmTTestFinderStrategy [
-	smTFinders
-		at: aSymbol
-		put:
-			(SmartFinder new
-				filter: aSmTFilterStrategy;
-				cacheStrategy: aSmTCacheStrategy;
-				smtFinder: aSmTTestFinderStrategy)
-]
-
-{ #category : #initialization }
-AbstractStaticDynamicExperiment >> initializeStaticFinder [
-	self
-		initializeSmartFinder: #static
-		filter: SmTDefaultClassPackagesFilter new
-		cacheStrategy: SmTNoCacheStrategy new
-		finder: SmTSenderTestFinderStrategy new
+	logger := ExperimentLauncherLogger new.
+	"oracleFinder is a test finder (dynamic strategy) used to build the oracle.
+	It has been created to replace the use of the dynamic SmartFinder's finder in ExperimentLauncher>>addToOracle:"
+	oracleFinder := SmTTestCoverageTestFinderStrategy new
 ]
 
 { #category : #private }
@@ -218,7 +231,10 @@ AbstractStaticDynamicExperiment >> manageBuildCache [
 	smTFinders
 		valuesDo: [ :finder | 
 			finder resetCache.
-			finder buildCacheFromTestSuite: ts ]
+			finder buildCacheFromTestSuite: ts ].
+	oracleFinder
+		cache: (SmTBasicCacheStrategy new cache: Dictionary new);
+		buildCacheFromTestSuite: ts
 ]
 
 { #category : #private }
@@ -241,7 +257,7 @@ AbstractStaticDynamicExperiment >> packages: aCollectionOfCategoryNames [
 ]
 
 { #category : #running }
-AbstractStaticDynamicExperiment >> performAnalyses [
+AbstractStaticDynamicExperiment >> performAnalysis [
 	smTFinders keysDo: [ :key | self performAnalysis: key ]
 ]
 
@@ -266,6 +282,16 @@ AbstractStaticDynamicExperiment >> processChange [
 { #category : #private }
 AbstractStaticDynamicExperiment >> runSuites [
 	collectionOfTestSuites do: [ :each | each run ]
+]
+
+{ #category : #accessing }
+AbstractStaticDynamicExperiment >> smTFinders: anObject [
+	smTFinders := anObject
+]
+
+{ #category : #accessing }
+AbstractStaticDynamicExperiment >> smTResults: anObject [
+	smTResults := anObject
 ]
 
 { #category : #private }

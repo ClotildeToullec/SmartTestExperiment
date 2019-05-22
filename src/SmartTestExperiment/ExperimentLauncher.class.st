@@ -179,6 +179,35 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 ]
 
 { #category : #'instance creation' }
+ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames withFinders: aSmartFindersDictionary [
+	"self onOmbuFiles: {
+		'ForwardChainer/ForwardChainer2.ombu' .
+		'ForwardChainer/ForwardChainer3.ombu' .
+		'ForwardChainer/ForwardChainer4.ombu' .
+		'ForwardChainer/ForwardChainer5.ombu' .
+		} logFileName: 'ForwardChainer_LOG'
+	withPackages: {#IABasic . #ConfigurationOfCloudforkAWS}"
+
+	| logfileRef changes fileRef |
+	changes := OrderedCollection new.
+	aListOfFileNames
+		do: [ :fileName | 
+			fileRef := fileName asFileReference.
+			fileRef exists
+				ifTrue:
+					[ changes addAll: (self ombuEntriesFromFile: fileName asFileReference)	" collect: [ :om | om content ]" ] ].
+	logfileRef := aLogFileName asFileReference.
+	lastRuns
+		add:
+			((self new: aSmartFindersDictionary)
+				logFileReference: logfileRef;
+				packages: packageNames;
+				changeList: changes;
+				yourself).
+	^ self lastRun
+]
+
+{ #category : #'instance creation' }
 ExperimentLauncher class >> resetLastRun [
 	"self resetLastRun"
 	lastRuns := OrderedCollection new
@@ -317,6 +346,33 @@ ExperimentLauncher class >> runTestScenarioLanExQuick [
 		run;
 		terminate.
 	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
+]
+
+{ #category : #'ungeneric finders examples' }
+ExperimentLauncher class >> runTestScenarioLanExUngeneric [
+	"self runTestScenarioLanEx"
+
+	<script>
+	| el |
+	EpMonitor current disable.
+	self resetLastRun.
+	1 to: 2 do: [ :i | 
+		| ombFile logFile |
+		ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_0'
+			, i asString , '.ombu'.
+		logFile := 'LANSimulation' , i asString , '.log'.
+		el := self
+			onOmbuFiles: {ombFile}
+			logFileName: logFile
+			withPackages: {'LANSimulation'}
+			withFinders: self ungenericExample1.
+		el
+			prepare: i = 1;
+			"if i=1, erase LANSimulation package first, otherwise keep it"
+				run;
+			terminate.
+		SmalltalkImage current snapshot: true andQuit: false ].
 	EpMonitor current enable
 ]
 
@@ -528,6 +584,32 @@ ExperimentLauncher class >> timedRun: aScenarioSelector csvBaseFileName: aFileNa
 		show: stopwatch printString
 ]
 
+{ #category : #'ungeneric finders examples' }
+ExperimentLauncher class >> ungenericExample1 [
+	| smTFinders |
+	smTFinders := Dictionary new.
+	smTFinders
+		at: #fiveChangesCache
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTBasicCacheResetEvery5ChangesStrategy new;
+				smtFinder: SmTTestCoverageTestFinderStrategy new);
+		at: #static
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTNoCacheStrategy new;
+				smtFinder: SmTSenderTestFinderStrategy new);
+		at: #dynamic
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTBasicCacheStrategy new;
+				smtFinder: SmTTestCoverageTestFinderStrategy new).
+	^ smTFinders
+]
+
 { #category : #'oracle creation' }
 ExperimentLauncher >> addToOracle: aTest [
 	| singleTestCaseSuite singleTestCaseWrapper methodUnderTest |
@@ -540,7 +622,7 @@ ExperimentLauncher >> addToOracle: aTest [
 	singleTestCaseSuite addTest: aTest.
 	
 	singleTestCaseWrapper := SmTTestCoverage new
-		finder: (smTFinders at: #dynamic) smtFinder;
+		finder: oracleFinder;
 		initializeOn: methodUnderTest.
 	
 	[ singleTestCaseWrapper install.
@@ -714,7 +796,7 @@ ExperimentLauncher >> initialize [
 	super initialize.
 	changeList := {}.
 	oracle := IdentityDictionary new.
-	measurements := ExperimentLauncherMeasurements new.
+	measurements := ExperimentLauncherMeasurements new: smTFinders keys.
 	logger launcherMeasurements: measurements
 ]
 
@@ -742,8 +824,9 @@ ExperimentLauncher >> logMeasurementsPrecision [
 
 { #category : #logging }
 ExperimentLauncher >> logTimeSavings [
-	"See ExperimentLauncher>>manageAnalysis"
-
+	"This method is strange : Runs the tests found for every EpChange but always stores the result in the last measurements row, so the previous results are erased.
+	If we want to keep all runtimes, we should do it during the esperiment run and not at the end.
+	If we only want the total, no need to store the results in measurements."
 	| time reduced smarttestAdvice |
 	smTResults
 		keysAndValuesDo: [ :key :results | 
@@ -754,15 +837,14 @@ ExperimentLauncher >> logTimeSavings [
 			reduced := self createTestSuite: smarttestAdvice.
 			Smalltalk garbageCollect.
 			time := [ reduced run ] timeToRun.
-			time := time asMilliSeconds.
-			self measurements setReducedTestTime: time forFinder: key ]
+			"logger logTime: time forFinder: key."
+			self measurements setTestTime: time forFinder: key ]
 ]
 
 { #category : #running }
 ExperimentLauncher >> manageAnalysis [
-	self performAnalyses.
+	self performAnalysis.
 	self logMeasurementsPrecision
-	"self logTimeSavings"
 ]
 
 { #category : #'oracle creation' }
@@ -798,8 +880,8 @@ ExperimentLauncher >> packages [
 ]
 
 { #category : #running }
-ExperimentLauncher >> performAnalyses [
-	super performAnalyses.
+ExperimentLauncher >> performAnalysis [
+	super performAnalysis.
 	logger logAnalysis: smTResults
 ]
 
@@ -859,7 +941,8 @@ ExperimentLauncher >> run [
 						ifTrue: [ self runSmartTestAnalysis ]
 						ifFalse: [ self noSmartTestAnalysis ].
 					bar increment ] ].
-	logger logFinalResults.
+	logger logFinalResultsForFinders: smTFinders keys.
+	self logTimeSavings.
 	measurements removeLastRowIfEmpty
 ]
 
@@ -907,8 +990,7 @@ ExperimentLauncher >> terminate [
 	smTFinders
 		keysDo: [ :key | visualizer visualizePrecisionForFinder: key ].
 	visualizer
-		visualiseCacheSizeBarChart;
-		visualiseTestExecutionTime
+		visualiseCacheSizeBarChart
 ]
 
 { #category : #accessing }
