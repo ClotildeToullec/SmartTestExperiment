@@ -14,7 +14,7 @@ This is done by the 3 subclasses: TimeAndMemoryMaster is the main one. It random
 "
 Class {
 	#name : #TimeAndMemoryExperiment,
-	#superclass : #AbstractStaticDynamicExperiment,
+	#superclass : #AbstractSmartTestExperiment,
 	#instVars : [
 		'csvFilename'
 	],
@@ -23,12 +23,17 @@ Class {
 
 { #category : #accessing }
 TimeAndMemoryExperiment class >> csvFile [
-	^ '/home/anquetil/Documents/RMod/Rech/SmartTest3/timeExp.csv'
+	^ '/home/clotilde/Documents/Stage/TimeAndMem/timeExp.csv'
+]
+
+{ #category : #'instance creation' }
+TimeAndMemoryExperiment class >> resultsFormat [
+	^ SortedCollection new
 ]
 
 { #category : #accessing }
 TimeAndMemoryExperiment class >> rootDir [
-	^ '/home/anquetil/Documents/RMod/Rech/SmartTest3/'
+	^ '/home/clotilde/Documents/Stage/TimeAndMem/'
 ]
 
 { #category : #accessing }
@@ -38,24 +43,23 @@ TimeAndMemoryExperiment >> currentDatasetName [
 
 { #category : #exportToCSV }
 TimeAndMemoryExperiment >> eraseCSV: aBoolean [
-	aBoolean
-		ifTrue: [	| file |
-			file := self class csvFile asFileReference.
-			file exists ifTrue: [
-				file delete.
-				self saveCSVLine: {
-					'Dataset' .
-					'change number' .
-					'changed method' .
-					'#all tests' .
-					'time all tests' .
-					'# selected tests static' .
-					'time selected tests static' .
-					'# selected tests dynamic' .
-					'time selected tests dynamic'
-				}
-			]
-		]
+	| file |
+	file := self class csvFile asFileReference.
+	file exists
+		ifTrue: [ aBoolean
+				ifTrue: [ file delete ]
+				ifFalse: [ ^ self ] ].
+	self
+		saveCSVLine:
+			{'Dataset'.
+			'change number'.
+			'changed method'.
+			'#all tests'.
+			'time all tests'.
+			(smTFinders keys
+				collect: [ :key | 
+					{('selected test ' , key asString).
+					('time selected tests ' , key asString)} ])} flattened
 ]
 
 { #category : #processes }

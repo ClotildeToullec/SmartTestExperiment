@@ -17,7 +17,8 @@ ImageRunner class >> platformRunner [
 
 { #category : #accessing }
 ImageRunner class >> vmCommand [
-	^ '/home/anquetil/Pharo/vms/70-x86/pharo'
+	^ "'/home/anquetil/Pharo/vms/70-x86/pharo'"
+	'/home/clotilde/Pharo/vms/70-x86/pharo'
 ]
 
 { #category : #'launching images' }
@@ -46,8 +47,8 @@ ImageRunner >> createLaunchCommandForImage: imageFileReference withParameters: a
 
 { #category : #'launching images' }
 ImageRunner >> currentLDLibraryPathes [
-	^ ((OSEnvironment current getEnv: 'LD_LIBRARY_PATH') ifNil: [ '' ])
-		substrings: ':'
+	^ ((OSEnvironment current at: 'LD_LIBRARY_PATH' ifAbsent: [ nil ])
+		ifNil: [ '' ]) substrings: ':'
 ]
 
 { #category : #'launching images' }

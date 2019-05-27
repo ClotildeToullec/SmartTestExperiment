@@ -96,8 +96,7 @@ ApplicationDataSet class >> PostgreSQL [
 
 { #category : #accessing }
 ApplicationDataSet class >> rootDir [
-	"^ '/home/anquetil/Documents/RMod/Rech/SmartTest3/'"
-	^ '/home/clotilde/Documents/Stage/'
+	^ '/home/clotilde/Documents/Stage/TimeAndMem'
 ]
 
 { #category : #accessing }
@@ -194,8 +193,8 @@ ApplicationDataSet >> name: anObject [
 
 { #category : #private }
 ApplicationDataSet >> ombuEntriesFromFile: ombFile [
-	"conveniance method to call the AbstractStaticDynamicExperiment one"
-	^ AbstractStaticDynamicExperiment ombuEntriesFromFile: ombFile
+	"conveniance method to call the AbstractSmartTestExperiment one"
+	^ AbstractSmartTestExperiment ombuEntriesFromFile: ombFile
 ]
 
 { #category : #accessing }

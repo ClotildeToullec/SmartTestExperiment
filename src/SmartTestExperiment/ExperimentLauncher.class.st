@@ -23,7 +23,7 @@ Internal Representation and Key Implementation Points.
 "
 Class {
 	#name : #ExperimentLauncher,
-	#superclass : #AbstractStaticDynamicExperiment,
+	#superclass : #AbstractSmartTestExperiment,
 	#instVars : [
 		'changeList',
 		'oracle',
@@ -213,6 +213,11 @@ ExperimentLauncher class >> resetLastRun [
 	lastRuns := OrderedCollection new
 ]
 
+{ #category : #'instance creation' }
+ExperimentLauncher class >> resultsFormat [
+	^ IdentityDictionary new
+]
+
 { #category : #scenarios }
 ExperimentLauncher class >> runScenarioPillar [
 	"self runScenarioPillar"
@@ -366,7 +371,7 @@ ExperimentLauncher class >> runTestScenarioLanExUngeneric [
 			onOmbuFiles: {ombFile}
 			logFileName: logFile
 			withPackages: {'LANSimulation'}
-			withFinders: self ungenericExample1.
+			withFinders: self ungenericFinders.
 		el
 			prepare: i = 1;
 			"if i=1, erase LANSimulation package first, otherwise keep it"
@@ -582,32 +587,6 @@ ExperimentLauncher class >> timedRun: aScenarioSelector csvBaseFileName: aFileNa
 		cr;
 		show: 'Terminating ...';
 		show: stopwatch printString
-]
-
-{ #category : #'ungeneric finders examples' }
-ExperimentLauncher class >> ungenericExample1 [
-	| smTFinders |
-	smTFinders := Dictionary new.
-	smTFinders
-		at: #fiveChangesCache
-			put:
-			(SmartFinder new
-				filter: SmTDefaultClassPackagesFilter new;
-				cacheStrategy: SmTBasicCacheResetEvery5ChangesStrategy new;
-				smtFinder: SmTTestCoverageTestFinderStrategy new);
-		at: #static
-			put:
-			(SmartFinder new
-				filter: SmTDefaultClassPackagesFilter new;
-				cacheStrategy: SmTNoCacheStrategy new;
-				smtFinder: SmTSenderTestFinderStrategy new);
-		at: #dynamic
-			put:
-			(SmartFinder new
-				filter: SmTDefaultClassPackagesFilter new;
-				cacheStrategy: SmTBasicCacheStrategy new;
-				smtFinder: SmTTestCoverageTestFinderStrategy new).
-	^ smTFinders
 ]
 
 { #category : #'oracle creation' }

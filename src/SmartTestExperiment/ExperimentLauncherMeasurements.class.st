@@ -140,67 +140,6 @@ ExperimentLauncherMeasurements >> lastRow [
 	^ rows last
 ]
 
-{ #category : #printing }
-ExperimentLauncherMeasurements >> printOn: aStream [
-	"To be improved"
-
-	super printOn: aStream.
-	aStream cr.
-	aStream
-		<< 'Static: ';
-		cr.
-	self printResult: (columnNames copyFrom: 2 to: 5) on: aStream.
-	aStream
-		<< 'Dynamic ';
-		cr.
-	self printResult: (columnNames copyFrom: 6 to: 9) on: aStream.
-	aStream
-		<< 'Source Code: ';
-		cr.
-	self printResult: (columnNames copyFrom: 12 to: 14) on: aStream.
-	aStream
-		<< 'Tests: ';
-		cr.
-	self printResult: (columnNames copyFrom: 15 to: 17) on: aStream.
-	aStream
-		<< 'Total Code Churn: ';
-		<< self totalSourceCodeChurn;
-		cr.
-	aStream
-		<< 'Total Test Code Churn: ';
-		<< self totalTestCodeChurn;
-		cr.
-	(columnNames notNil and: [ columnNames isSequenceable ])
-		ifTrue: [ aStream cr.
-			columnNames
-				do: [ :columnName | 
-					columnName printOn: aStream.
-					aStream tab ] ].
-	(rows notNil and: [ rows isSequenceable ])
-		ifTrue: [ rows
-				do: [ :row | 
-					aStream cr.
-					row
-						valuesDo: [ :cell | 
-							cell printOn: aStream.
-							aStream tab ] ] ]
-]
-
-{ #category : #printing }
-ExperimentLauncherMeasurements >> printResult: aSymbolCollection on: aStream [
-	aSymbolCollection
-		do: [ :symbol | 
-			symbol cutCamelCase
-				do: [ :word | 
-					aStream
-						<< word capitalized;
-						space ];
-				<< ': ';
-				<< (rows total: symbol);
-				<< ' - ' ].
-	aStream cr
-]
-
 { #category : #'execution time' }
 ExperimentLauncherMeasurements >> reducedTestTimeDynamic [
 	^ rows last at: #reducedTestTimeDynamic
