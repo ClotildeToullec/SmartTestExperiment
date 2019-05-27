@@ -20,7 +20,8 @@ Class {
 { #category : #finders }
 TimeAndMemoryMaster class >> defaultFindersSourceCode [
 	^ '	| smTFinders |
-	smTFinders := Dictionary new.
+		"Ordered dictionary to be sure that headers and results are always in the same order."
+	smTFinders := OrderedDictionary new.
 	smTFinders
 		at: #static
 			put:
@@ -50,8 +51,8 @@ TimeAndMemoryMaster class >> new [
 TimeAndMemoryMaster class >> new: aSmTFindersDictionarySourceString [
 	CodeExporter
 		writeSourceCodeFrom: aSmTFindersDictionarySourceString
-		baseName: 'SmTFinders'
-		isSt: true.
+		toFileReference:
+			'/home/clotilde/Documents/Stage/TimeAndMem/LANSimulationData/SmartFinders.st' asFileReference.
 	^ super
 		new: (CodeImporter evaluateString: aSmTFindersDictionarySourceString)
 ]
@@ -90,7 +91,8 @@ TimeAndMemoryMaster class >> runExperiment: resetCSV [
 { #category : #finders }
 TimeAndMemoryMaster class >> ungenericFindersSourceCode [
 	^ '| smTFinders |
-	smTFinders := Dictionary new.
+	"Ordered dictionary to be sure that headers and results are always in the same order."
+	smTFinders := OrderedDictionary new.
 	smTFinders
 		at: #fiveChangesCache
 			put:

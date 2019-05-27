@@ -31,7 +31,7 @@ Class {
 { #category : #finders }
 AbstractSmartTestExperiment class >> defaultFinders [
 	| smTFinders |
-	smTFinders := Dictionary new.
+	smTFinders := OrderedDictionary new.
 	smTFinders
 		at: #static
 			put:
@@ -138,7 +138,7 @@ AbstractSmartTestExperiment class >> new: aSmartFindersDictionary [
 	^ self basicNew
 		smTFinders: aSmartFindersDictionary;
 		smTResults:
-			(Dictionary
+			(OrderedDictionary
 				newFromKeys: aSmartFindersDictionary keys
 				andValues:
 					(Array
@@ -161,7 +161,7 @@ AbstractSmartTestExperiment class >> resultsFormat [
 { #category : #finders }
 AbstractSmartTestExperiment class >> ungenericFinders [
 	| smTFinders |
-	smTFinders := Dictionary new.
+	smTFinders := OrderedDictionary new.
 	smTFinders
 		at: #fiveChangesCache
 			put:

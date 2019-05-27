@@ -27,7 +27,7 @@ TimeAndMemorySlave class >> new [
 	^ self basicNew
 		smTFinders: smTFinders;
 		smTResults:
-			(Dictionary
+			(OrderedDictionary
 				newFromKeys: smTFinders keys
 				andValues: (Array new: smTFinders size withAll: self resultsFormat));
 		initialize;
@@ -83,7 +83,14 @@ TimeAndMemorySlave >> numberOfTests: aCollectionOfTestSuites [
 
 { #category : #analyses }
 TimeAndMemorySlave >> performAnalysis: aSymbol [
-	smTResults at: aSymbol put: (super performAnalysis: aSymbol)
+	"Considering #at:put: to be negligible"
+
+	| timeToRun |
+	timeToRun := [ smTResults
+		at: aSymbol
+		at: #testsToRun
+		put: (super performAnalysis: aSymbol) ] timeToRun.
+	smTResults at: aSymbol at: #analysisTime put: timeToRun
 ]
 
 { #category : #'experiment-preparation' }
@@ -116,7 +123,7 @@ TimeAndMemorySlave >> recoverChange: aChangeNumber inDataset: datasetName [
 ]
 
 { #category : #'experiment-running' }
-TimeAndMemorySlave >> reportAllTestsTime: allTestsTime reducedTestTimes: resultsDictionary [
+TimeAndMemorySlave >> reportAllTestsTime: allTestsTime reducedTestTimes: runTimesDictionary [
 	"see CSV header line in TimeAndMemoryExperiment>>eraseCSV:"
 
 	self
@@ -126,10 +133,11 @@ TimeAndMemorySlave >> reportAllTestsTime: allTestsTime reducedTestTimes: results
 			currentChange content methodAffected fullName asString.
 			(self numberOfTests: collectionOfTestSuites).
 			allTestsTime.
-			(resultsDictionary keys
+			(smTResults keys
 				collect: [ :key | 
-					{(smTResults at: key) size.
-					(resultsDictionary at: key)} ])} flattened
+					{(smTResults at: key at: #testsToRun) size.
+					(smTResults at: key at: #analysisTime).
+					(runTimesDictionary at: key)} ])} flattened
 ]
 
 { #category : #'experiment-preparation' }
@@ -144,8 +152,10 @@ TimeAndMemorySlave >> runExperiment: anInt [
 	allTestsTime := self timeForTestSuites.
 	resultsTestTimes := Dictionary new.
 	smTResults
-		keysAndValuesDo:
-			[ :key :testsToRun | resultsTestTimes at: key put: (self timeForTests: testsToRun) ].
+		keysAndValuesDo: [ :key :results | 
+			resultsTestTimes
+				at: key
+				put: (self timeForTests: (results at: #testsToRun)) ].
 	self
 		reportAllTestsTime: allTestsTime
 		reducedTestTimes: resultsTestTimes.

@@ -28,7 +28,7 @@ TimeAndMemoryExperiment class >> csvFile [
 
 { #category : #'instance creation' }
 TimeAndMemoryExperiment class >> resultsFormat [
-	^ SortedCollection new
+	^ Dictionary new
 ]
 
 { #category : #accessing }
@@ -59,6 +59,7 @@ TimeAndMemoryExperiment >> eraseCSV: aBoolean [
 			(smTFinders keys
 				collect: [ :key | 
 					{('selected test ' , key asString).
+					('analysis time ' , key asString).
 					('time selected tests ' , key asString)} ])} flattened
 ]
 
