@@ -36,6 +36,23 @@ TimeAndMemoryExperiment class >> rootDir [
 	^ '/home/clotilde/Documents/Stage/TimeAndMem/'
 ]
 
+{ #category : #exportToCSV }
+TimeAndMemoryExperiment >> createCSVHeader [
+	self
+		saveCSVLine:
+			{'Dataset'.
+			'change number'.
+			'changed method'.
+			'#all tests'.
+			'time all tests'.
+			(smTFinders keys
+				collect: [ :key | 
+					{('selected test ' , key asString).
+					('cache building cache' , key asString).
+					('analysis time ' , key asString).
+					('time selected tests ' , key asString)} ])} flattened
+]
+
 { #category : #accessing }
 TimeAndMemoryExperiment >> currentDatasetName [
 	^ dataSet name
@@ -49,18 +66,7 @@ TimeAndMemoryExperiment >> eraseCSV: aBoolean [
 		ifTrue: [ aBoolean
 				ifTrue: [ file delete ]
 				ifFalse: [ ^ self ] ].
-	self
-		saveCSVLine:
-			{'Dataset'.
-			'change number'.
-			'changed method'.
-			'#all tests'.
-			'time all tests'.
-			(smTFinders keys
-				collect: [ :key | 
-					{('selected test ' , key asString).
-					('analysis time ' , key asString).
-					('time selected tests ' , key asString)} ])} flattened
+	self createCSVHeader
 ]
 
 { #category : #processes }

@@ -76,6 +76,23 @@ TimeAndMemorySlave >> loadChangesBefore: aChangeNumber [
 	^ false
 ]
 
+{ #category : #analyses }
+TimeAndMemorySlave >> manageBuildCache [
+	| ts |
+	self createTestcases.
+	ts := TestSuite new.
+	ts addTests: collectionOfTestSuites.
+	smTFinders
+		keysAndValuesDo: [ :key :finder | 
+			smTResults
+				at: key
+				at: #buildCacheTime
+				put:
+					[ finder resetCache.
+					finder buildCacheFromTestSuite: ts ] timeToRunInMicroSeconds ]
+	"No need for oracleFinder while we don't calculate the confusion table."
+]
+
 { #category : #'tests stats' }
 TimeAndMemorySlave >> numberOfTests: aCollectionOfTestSuites [
 	^ (aCollectionOfTestSuites flatCollect: #flatCollectTests) size
@@ -83,13 +100,13 @@ TimeAndMemorySlave >> numberOfTests: aCollectionOfTestSuites [
 
 { #category : #analyses }
 TimeAndMemorySlave >> performAnalysis: aSymbol [
-	"Considering #at:put: to be negligible"
+	"Considering #at:at:put: runtime to be negligible"
 
 	| timeToRun |
 	timeToRun := [ smTResults
 		at: aSymbol
 		at: #testsToRun
-		put: (super performAnalysis: aSymbol) ] timeToRun.
+		put: (super performAnalysis: aSymbol) ] timeToRunInMicroSeconds.
 	smTResults at: aSymbol at: #analysisTime put: timeToRun
 ]
 
@@ -123,7 +140,7 @@ TimeAndMemorySlave >> recoverChange: aChangeNumber inDataset: datasetName [
 ]
 
 { #category : #'experiment-running' }
-TimeAndMemorySlave >> reportAllTestsTime: allTestsTime reducedTestTimes: runTimesDictionary [
+TimeAndMemorySlave >> reportTestTimes: allTestsTime [
 	"see CSV header line in TimeAndMemoryExperiment>>eraseCSV:"
 
 	self
@@ -133,11 +150,12 @@ TimeAndMemorySlave >> reportAllTestsTime: allTestsTime reducedTestTimes: runTime
 			currentChange content methodAffected fullName asString.
 			(self numberOfTests: collectionOfTestSuites).
 			allTestsTime.
-			(smTResults keys
-				collect: [ :key | 
-					{(smTResults at: key at: #testsToRun) size.
-					(smTResults at: key at: #analysisTime).
-					(runTimesDictionary at: key)} ])} flattened
+			(smTResults
+				collect: [ :result | 
+					{(result at: #testsToRun) size.
+					(result at: #buildCacheTime).
+					(result at: #analysisTime).
+					(result at: #testRunTime)} ]) values} flattened
 ]
 
 { #category : #'experiment-preparation' }
@@ -147,18 +165,16 @@ TimeAndMemorySlave >> resetRunningImage [
 
 { #category : #'experiment-running' }
 TimeAndMemorySlave >> runExperiment: anInt [
-	| allTestsTime resultsTestTimes |
+	| allTestsTime |
 	expNumber := anInt.
 	allTestsTime := self timeForTestSuites.
-	resultsTestTimes := Dictionary new.
 	smTResults
 		keysAndValuesDo: [ :key :results | 
-			resultsTestTimes
+			smTResults
 				at: key
+				at: #testRunTime
 				put: (self timeForTests: (results at: #testsToRun)) ].
-	self
-		reportAllTestsTime: allTestsTime
-		reducedTestTimes: resultsTestTimes.
+	self reportTestTimes: allTestsTime.
 	self quitImage
 ]
 
