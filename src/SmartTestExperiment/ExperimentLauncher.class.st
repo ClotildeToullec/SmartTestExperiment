@@ -334,7 +334,7 @@ ExperimentLauncher class >> runTestScenarioLanEx [
 
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioLanExQuick [
-	"self runTestScenarioLanEx"
+	"Used only to test non-regression while refactoring"
 
 	<script>
 	| el ombFile logFile |
@@ -770,8 +770,6 @@ ExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
 
 { #category : #initialization }
 ExperimentLauncher >> initialize [
-	"self new run"
-
 	super initialize.
 	changeList := {}.
 	oracle := IdentityDictionary new.
@@ -820,7 +818,7 @@ ExperimentLauncher >> logTimeSavings [
 			self measurements setTestTime: time forFinder: key ]
 ]
 
-{ #category : #running }
+{ #category : #analysis }
 ExperimentLauncher >> manageAnalysis [
 	self performAnalysis.
 	self logMeasurementsPrecision
@@ -833,7 +831,7 @@ ExperimentLauncher >> manageBuildOracle [
 	self createOracle
 ]
 
-{ #category : #running }
+{ #category : #analysis }
 ExperimentLauncher >> manageChange [
 	self processChange.
 	self collectMeasurementsCodechurn.
@@ -853,18 +851,24 @@ ExperimentLauncher >> noSmartTestAnalysis [
 
 { #category : #accessing }
 ExperimentLauncher >> packages [
-	"For convenience. Packages should be in dataSet"
-
 	^ packages
 ]
 
-{ #category : #running }
+{ #category : #private }
+ExperimentLauncher >> packages: aCollectionOfCategoryNames [
+	aCollectionOfCategoryNames
+		assert: aCollectionOfCategoryNames isSequenceable
+		description: 'Expected a collection for #packages:'.
+	packages := aCollectionOfCategoryNames
+]
+
+{ #category : #analysis }
 ExperimentLauncher >> performAnalysis [
 	super performAnalysis.
 	logger logAnalysis: smTResults
 ]
 
-{ #category : #running }
+{ #category : #analysis }
 ExperimentLauncher >> performAnalysis: aSymbol [
 	smTResults
 		at: aSymbol
@@ -898,8 +902,6 @@ ExperimentLauncher >> resetCollectingResults [
 
 { #category : #running }
 ExperimentLauncher >> run [
-	"self runTestScenario"
-
 	| barLabel |
 	barLabel := 'SmartTest Experiment ('
 		, logger logFileReference basename , ')'.
@@ -908,24 +910,13 @@ ExperimentLauncher >> run [
 		displayProgress: barLabel
 		from: 1
 		to: changeList size
-		during: [ :bar | 
-			changeList
-				do: [ :anOmEntry | 
-					currentChange := anOmEntry.
-					logger
-						logStartOfCodeChange: currentChange content
-						number: self changeNumber.
-					bar label: barLabel , ' change:' , self changeNumber asString.
-					self smarttestInterventionNeeded
-						ifTrue: [ self runSmartTestAnalysis ]
-						ifFalse: [ self noSmartTestAnalysis ].
-					bar increment ] ].
+		during: [ :bar | self runAndIncrement: bar Label: barLabel ].
 	logger logFinalResultsForFinders: smTFinders keys.
-	self logTimeSavings.
+	"self logTimeSavings."
 	measurements removeLastRowIfEmpty
 ]
 
-{ #category : #running }
+{ #category : #analysis }
 ExperimentLauncher >> runAnalysisThenChange [
 	self manageBuildCache.
 	self manageBuildOracle.
@@ -934,6 +925,21 @@ ExperimentLauncher >> runAnalysisThenChange [
 ]
 
 { #category : #running }
+ExperimentLauncher >> runAndIncrement: bar Label: barLabel [
+	changeList
+		do: [ :anOmEntry | 
+			currentChange := anOmEntry.
+			logger
+				logStartOfCodeChange: currentChange content
+				number: self changeNumber.
+			bar label: barLabel , ' change:' , self changeNumber asString.
+			self smarttestInterventionNeeded
+				ifTrue: [ self runSmartTestAnalysis ]
+				ifFalse: [ self noSmartTestAnalysis ].
+			bar increment ]
+]
+
+{ #category : #analysis }
 ExperimentLauncher >> runChangeThenAnalysis [
 	self manageBuildCache.
 	self manageChange.

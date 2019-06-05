@@ -26,7 +26,15 @@ ExperimentVisualizer >> addTo: aGrapher barChart: dataPoints for: barSymbol [
 	aGrapher add: ds
 ]
 
-{ #category : #'code churn' }
+{ #category : #utility }
+ExperimentVisualizer >> createBarChart: symbol [
+	^ self
+		createBarchartData: (measurements collect: [ :row | row at: symbol ])
+		label: (self symbolToString: symbol)
+		color: (colorDictionary at: symbol)
+]
+
+{ #category : #utility }
 ExperimentVisualizer >> createBarchartData: collectionOfPoints label: aLabel color: aColor [
 	| ds |
 	ds := RTData new.
@@ -35,6 +43,18 @@ ExperimentVisualizer >> createBarchartData: collectionOfPoints label: aLabel col
 	ds y: [ :v | v ].
 	ds label: aLabel.
 	ds dotShape circle color: aColor.
+	^ ds
+]
+
+{ #category : #utility }
+ExperimentVisualizer >> createLineChart: symbol [
+	| ds |
+	ds := RTData new.
+	ds
+		noDot;
+		connectColor: (colorDictionary at: symbol);
+		label: (self symbolToString: symbol);
+		points: (measurements collect: [ :row | row at: symbol ]).
 	^ ds
 ]
 
@@ -153,13 +173,8 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 	| b |
 	b := RTGrapher new.
 	#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified #testLinesAdded #testLinesDeleted #testLinesModified)
-		do: [ :symbol | 
-			b
-				add:
-					(self
-						createBarchartData: (measurements collect: [ :row | row at: symbol ])
-						label: (self symbolToString: symbol)
-						color: (colorDictionary at: symbol)) ].
+		do:
+			[ :symbol | b add: (self createBarChart: symbol) ].
 	b axisX
 		title: 'System Evolution';
 		noDecimal;
@@ -177,12 +192,7 @@ ExperimentVisualizer >> visualiseCodeChurnLineChart [
 	b := RTGrapher new.
 	#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified #testLinesAdded #testLinesDeleted #testLinesModified)
 		do: [ :symbol | 
-			ds := RTData new.
-			ds
-				noDot;
-				connectColor: (colorDictionary at: symbol);
-				label: (self symbolToString: symbol);
-				points: (measurements collect: [ :row | row at: symbol ]).
+			ds := self createLineChart: symbol.
 			b add: ds ].
 	b axisX
 		title: 'System Evolution';
@@ -200,13 +210,7 @@ ExperimentVisualizer >> visualiseTestExecutionTime [
 	| b |
 	b := RTGrapher new.
 	#(#totalTestTime #reducedTestTimeStatic #reducedTestTimeDynamic)
-		do: [ :symbol | 
-			b
-				add:
-					(self
-						createBarchartData: (measurements collect: [ :row | row at: symbol ])
-						label: (self symbolToString: symbol)
-						color: (colorDictionary at: symbol)) ].
+		do: [ :symbol | b add: (self createBarChart: symbol) ].
 	b axisX
 		title: 'System Evolution';
 		noDecimal;

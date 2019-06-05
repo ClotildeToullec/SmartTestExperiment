@@ -1,5 +1,6 @@
 "
-I represent the unit tests for ExperimentLauncherMeasurements
+I represent the unit tests for ExperimentLauncherMeasurements.
+I test only default finders usage and should be extended to modular analyses
 "
 Class {
 	#name : #TestExperimentLauncherMeasurements,
@@ -12,7 +13,7 @@ Class {
 
 { #category : #'initialize-release' }
 TestExperimentLauncherMeasurements >> setUp [
-	measurements := ExperimentLauncherMeasurements new.
+	measurements := ExperimentLauncherMeasurements new: ExperimentLauncher defaultFinders keys.
 ]
 
 { #category : #running }
@@ -45,7 +46,7 @@ TestExperimentLauncherMeasurements >> testCacheSize [
 
 { #category : #tests }
 TestExperimentLauncherMeasurements >> testIncrementResults [
-	| lastRow total |
+	| lastRow |
 	"First row"
 	measurements
 		incrementResult: #truePositivesStatic withAmount: 8;
@@ -87,21 +88,7 @@ TestExperimentLauncherMeasurements >> testIncrementResults [
 		assert: (lastRow at: #truePositivesDynamic) equals: 5;
 		assert: (lastRow at: #falsePositivesDynamic) equals: 6;
 		assert: (lastRow at: #falseNegativesDynamic) equals: 7;
-		assert: (lastRow at: #trueNegativesDynamic) equals: 8.
-
-	"Total"
-	total := measurements totalStaticResults.
-	self
-		assert: (total at: #truePositivesStatic) equals: 9;
-		assert: (total at: #falsePositivesStatic) equals: 9;
-		assert: (total at: #falseNegativesStatic) equals: 9;
-		assert: (total at: #trueNegativesStatic) equals: 9.
-	total := measurements totalDynamicResults.
-	self
-		assert: (total at: #truePositivesDynamic) equals: 9;
-		assert: (total at: #falsePositivesDynamic) equals: 9;
-		assert: (total at: #falseNegativesDynamic) equals: 9;
-		assert: (total at: #trueNegativesDynamic) equals: 9
+		assert: (lastRow at: #trueNegativesDynamic) equals: 8
 ]
 
 { #category : #running }

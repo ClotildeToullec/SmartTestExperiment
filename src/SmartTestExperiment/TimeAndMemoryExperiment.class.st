@@ -48,7 +48,7 @@ TimeAndMemoryExperiment >> createCSVHeader [
 			(smTFinders keys
 				collect: [ :key | 
 					{('selected test ' , key asString).
-					('cache building cache' , key asString).
+					('cache building time ' , key asString).
 					('analysis time ' , key asString).
 					('time selected tests ' , key asString)} ])} flattened
 ]

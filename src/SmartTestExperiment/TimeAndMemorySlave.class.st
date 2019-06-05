@@ -135,7 +135,6 @@ TimeAndMemorySlave >> quitImage [
 { #category : #'experiment-preparation' }
 TimeAndMemorySlave >> recoverChange: aChangeNumber inDataset: datasetName [
 	dataSet := ApplicationDataSet perform: datasetName.	"recover my dataset informations"
-	self packages: dataSet packages.
 	currentChange := dataSet changeAtPos: aChangeNumber
 ]
 

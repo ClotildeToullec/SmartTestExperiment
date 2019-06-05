@@ -122,21 +122,34 @@ ExperimentLogger >> logSeparationLine: changeNumber [
 
 { #category : #logging }
 ExperimentLogger >> logStartOfCodeChange: aChange [
-	self log: '-------------------------------------------------------------------' crBefore: true indentation: 0.
+	self
+		log: '-------------------------------------------------------------------'
+		crBefore: true
+		indentation: 0.
 	self log: aChange printString crBefore: true indentation: 0.
 	aChange isEpMethodChange
-		ifTrue: [ self log: aChange methodAffected sourceCode crBefore: true indentation: 0.
-			self log: '...................................................................' crBefore: true indentation: 0 ]
+		ifFalse: [ ^ self ].
+	self
+		log: aChange methodAffected sourceCode
+		crBefore: true
+		indentation: 0.
+	self
+		log: '...................................................................'
+		crBefore: true
+		indentation: 0
 ]
 
 { #category : #logging }
 ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
 	self logSeparationLine: changeNumber.
-"	self log: '-------------------------------------------------------------------' crBefore: true indentation: 0."
 	self log: aChange printString crBefore: true indentation: 0.
 	aChange isEpMethodChange
-		ifTrue: [ self log: aChange methodAffected sourceCode crBefore: true indentation: 0.
-			self log: '..........................' crBefore: true indentation: 0 ]
+		ifFalse: [ ^ self ].
+	self
+		log: aChange methodAffected sourceCode
+		crBefore: true
+		indentation: 0.
+	self log: '..........................' crBefore: true indentation: 0
 ]
 
 { #category : #logging }
