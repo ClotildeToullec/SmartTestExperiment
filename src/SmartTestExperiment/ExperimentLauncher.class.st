@@ -548,13 +548,11 @@ ExperimentLauncher class >> runTestScenarioTDD [
 ExperimentLauncher class >> runTextScenarioTFIDF [
 	<script>
 	self
-		runTestScenario: 'TinyBlog'
-		ombuFiles: #(1 2 3 4)
+		runTestScenario: 'TF-IDF'
+		ombuFiles: #(1 2) "File 3 is only renaming"
 		packages:
-			((RPackageOrganizer default packages
-				collect: [ :pck | pck name asString ]) sorted
-				select:
-					[ :pck | (pck beginsWith: 'TB') or: [ pck includesSubstring: 'TinyBlog' ] ])
+			{'TF-IDF' . 'CodeTokenizer' . 'ConfigurationOfNeoCSV'.
+			'Neo-CSV-Core' . 'Neo-CSV-Tests' . 'TF-IDF-Tests'}
 		withFinders: self defaultFinders
 ]
 
