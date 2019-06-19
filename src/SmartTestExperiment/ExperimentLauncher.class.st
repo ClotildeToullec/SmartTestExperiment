@@ -149,6 +149,33 @@ ExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: en
 	]
 ]
 
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> logFile: aProjectName number: i [
+	^ String
+		streamContents: [ :stream | 
+			stream
+				<< self rootDir;
+				<< aProjectName;
+				<< '/';
+				<< aProjectName;
+				<< i asString;
+				<< '.log' ]
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> ombuFile: aProjectName number: i [
+	^ String
+		streamContents: [ :stream | 
+			stream
+				<< self rootDir;
+				<< aProjectName;
+				<< '/ombu-sessions/';
+				<< aProjectName;
+				<< '_0';
+				<< i asString;
+				<< '.ombu' ]
+]
+
 { #category : #'instance creation' }
 ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames [
 	"self onOmbuFiles: {
@@ -218,6 +245,11 @@ ExperimentLauncher class >> resultsFormat [
 	^ IdentityDictionary new
 ]
 
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> rootDir [
+	^ '/home/clotilde/Documents/Stage/Projets/'
+]
+
 { #category : #scenarios }
 ExperimentLauncher class >> runScenarioPillar [
 	"self runScenarioPillar"
@@ -284,6 +316,30 @@ ExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
 	]
 ]
 
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runTestScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
+	"One experiment for each ombu file. Erase package before the first experiment"
+
+	| el firstFile |
+	EpMonitor current disable.
+	self resetLastRun.
+	firstFile := fileNumbers first.
+	fileNumbers
+		do: [ :i | 
+			el := self
+				onOmbuFiles: {(self ombuFile: aProjectName number: i)}
+				logFileName: (self logFile: aProjectName number: i)
+				withPackages: aPackagesCollection
+				withFinders: aSmartFindersDictionary.
+			el
+				prepare: i = firstFile;
+				"if first file, erase package first, otherwise keep it"
+					run;
+				terminate.
+			SmalltalkImage current snapshot: true andQuit: false ].
+	EpMonitor current enable
+]
+
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 	"self runTestScenarioForwardChainerEx"
@@ -345,7 +401,8 @@ ExperimentLauncher class >> runTestScenarioLanExQuick [
 	el := self
 		onOmbuFiles: {ombFile}
 		logFileName: logFile
-		withPackages: {'LANSimulation'}.
+		withPackages: {'LANSimulation'}
+		withFinders: self defaultFinders.
 	el
 		prepare: true;
 		run;
@@ -354,7 +411,30 @@ ExperimentLauncher class >> runTestScenarioLanExQuick [
 	EpMonitor current enable
 ]
 
-{ #category : #'ungeneric finders examples' }
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioLanExQuickReflectivity [
+	"Used only to test non-regression while refactoring"
+
+	<script>
+	| el ombFile logFile |
+	EpMonitor current disable.
+	self resetLastRun.
+	ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_01.ombu'.
+	logFile := 'LANSimulation1.log'.
+	el := self
+		onOmbuFiles: {ombFile}
+		logFileName: logFile
+		withPackages: {'LANSimulation'}
+		withFinders: self reflectivityFinder.
+	el
+		prepare: true;
+		run;
+		terminate.
+	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
+]
+
+{ #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioLanExUngeneric [
 	"self runTestScenarioLanEx"
 
@@ -439,6 +519,57 @@ ExperimentLauncher class >> runTestScenarioPheme: aCollection [
 			terminate.
 		"self saveImage ."
 	]
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioTDD [
+"Bug at change 314. Unknown classes"
+	<script>
+	self
+		runTestScenario: 'TDD'
+		ombuFiles: #(1 2 3)
+		packages:
+			{'BaselineOfPharoSettings' . 'PharoSettings' . 'PharoSettings5'.
+			'PharoSettings6' . 'BaselineOfNativeBrowser'.
+			'Native-Browser' . 'PharoSettings7' . '	BaselineOfFurro'.
+			'Furro' . 'BaselineOfCarrefour' . 'BaselineOfFASTJava'.
+			'BaselineOfFAST' . 'FAST-Core-Model' . 'FAST-Core-Visitor'.
+			'FAST-Model-Generator' . 'FAST-Java-Model' . 'FAST-Java-Model-Generator'.
+			'FAST-Java-SmaCC-Importer' . 'FAST-Java-SmaCC-Importer-Tests'.
+			'FAST-Java-Visitor' . 'Carrefour-Model-Generator'.
+			'Carrefour-FastAndBindingGenerator'.
+			'Carrefour-FastAndBindingGenerator-Tests'.
+			'Carrefour-Extension' . 'Carrefour-RemoveBinding'.
+			'Carrefour-RemoveBinding-Tests'}
+		withFinders: self defaultFinders
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTextScenarioTFIDF [
+	<script>
+	self
+		runTestScenario: 'TinyBlog'
+		ombuFiles: #(1 2 3 4)
+		packages:
+			((RPackageOrganizer default packages
+				collect: [ :pck | pck name asString ]) sorted
+				select:
+					[ :pck | (pck beginsWith: 'TB') or: [ pck includesSubstring: 'TinyBlog' ] ])
+		withFinders: self defaultFinders
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTextScenarioTinyBlog [
+	<script>
+	self
+		runTestScenario: 'TinyBlog'
+		ombuFiles: #(1 2 3 4)
+		packages:
+			((RPackageOrganizer default packages
+				collect: [ :pck | pck name asString ]) sorted
+				select:
+					[ :pck | (pck beginsWith: 'TB') or: [ pck includesSubstring: 'TinyBlog' ] ])
+		withFinders: self defaultFinders
 ]
 
 { #category : #utilities }
@@ -912,7 +1043,6 @@ ExperimentLauncher >> run [
 		to: changeList size
 		during: [ :bar | self runAndIncrement: bar Label: barLabel ].
 	logger logFinalResultsForFinders: smTFinders keys.
-	"self logTimeSavings."
 	measurements removeLastRowIfEmpty
 ]
 
@@ -974,8 +1104,7 @@ ExperimentLauncher >> terminate [
 	visualizer measurements: measurements rows.
 	smTFinders
 		keysDo: [ :key | visualizer visualizePrecisionForFinder: key ].
-	visualizer
-		visualiseCacheSizeBarChart
+	visualizer visualiseCodeChurnBarChart
 ]
 
 { #category : #accessing }

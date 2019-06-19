@@ -79,7 +79,7 @@ AbstractSmartTestExperiment class >> new [
 
 { #category : #'instance creation' }
 AbstractSmartTestExperiment class >> new: aSmartFindersDictionary [
-	"aSmartFindersDictionary should have symbols for keys and SmartFinders for values"
+	"aSmartFindersDictionary: keys should be symbols and values should be SmartFinders"
 
 	aSmartFindersDictionary ifEmpty: [ ^ self new ].
 	^ self basicNew
@@ -100,6 +100,20 @@ AbstractSmartTestExperiment class >> ombuEntriesFromFile: ombFile [
 	^ (EpLog freshFromFile: ombFile) entries
 ]
 
+{ #category : #finders }
+AbstractSmartTestExperiment class >> reflectivityFinder [
+	| smTFinders |
+	smTFinders := OrderedDictionary new.
+	smTFinders
+		at: #reflectivity
+		put:
+			(SmartFinder new
+				filter: SmTDefaultPackagesFilter new;
+				cacheStrategy: SmTNoCacheStrategy new;
+				smtFinder: SmTReflectivityTestFinderStrategy new).
+	^ smTFinders
+]
+
 { #category : #'instance creation' }
 AbstractSmartTestExperiment class >> resultsFormat [
 	self subclassResponsibility
@@ -110,23 +124,41 @@ AbstractSmartTestExperiment class >> ungenericFinders [
 	| smTFinders |
 	smTFinders := OrderedDictionary new.
 	smTFinders
+		at: #staticPackage
+			put:
+			(SmartFinder new
+				filter: SmTDefaultPackagesFilter new;
+				cacheStrategy: SmTNoCacheStrategy new;
+				smtFinder: SmTSenderTestFinderStrategy new);
+		at: #staticClassRefs
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTNoCacheStrategy new;
+				smtFinder: SmTSenderTestFinderStrategy new);
+"		at: #staticNoFilter
+			put:
+			(SmartFinder new
+				filter: SmTNoFilter new;
+				cacheStrategy: SmTNoCacheStrategy new;
+				smtFinder: SmTSenderTestFinderStrategy new);"
+		at: #dynamicBasicCache
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTBasicCacheStrategy new;
+				smtFinder: SmTTestCoverageTestFinderStrategy new);
 		at: #fiveChangesCache
 			put:
 			(SmartFinder new
 				filter: SmTDefaultClassPackagesFilter new;
 				cacheStrategy: SmTBasicCacheResetEvery5ChangesStrategy new;
 				smtFinder: SmTTestCoverageTestFinderStrategy new);
-		at: #static
+		at: #dynamicNeverReset
 			put:
 			(SmartFinder new
 				filter: SmTDefaultClassPackagesFilter new;
-				cacheStrategy: SmTNoCacheStrategy new;
-				smtFinder: SmTSenderTestFinderStrategy new);
-		at: #dynamic
-			put:
-			(SmartFinder new
-				filter: SmTDefaultClassPackagesFilter new;
-				cacheStrategy: SmTBasicCacheStrategy new;
+				cacheStrategy: SmTBasicCacheNeverResetStrategy new;
 				smtFinder: SmTTestCoverageTestFinderStrategy new).
 	^ smTFinders
 ]
