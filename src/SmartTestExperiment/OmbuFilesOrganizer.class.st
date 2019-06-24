@@ -34,6 +34,12 @@ OmbuFilesOrganizer >> packageNamesInFile: anOmbuFile [
 		thenSelect: [ :name | name isNotNil ]) asSet
 ]
 
+{ #category : #'file info' }
+OmbuFilesOrganizer >> packagesInFiles: files [
+	^ (files flatCollect: [ :file | self packageNamesInFile: file ])
+		asSet
+]
+
 { #category : #rename }
 OmbuFilesOrganizer >> renameFiles: ombuFiles inProject: aProjectName [
 	| sortedFiles |

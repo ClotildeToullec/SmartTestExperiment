@@ -17,7 +17,7 @@ Class {
 
 { #category : #accessing }
 TimeAndMemorySlave class >> getInstance [
-	^runningExperiment ifNil: [ runningExperiment := self new ]
+	^ runningExperiment ifNil: [ runningExperiment := self new ]
 ]
 
 { #category : #'instance creation' }
@@ -34,12 +34,9 @@ TimeAndMemorySlave class >> new [
 		yourself
 ]
 
-{ #category : #analyses }
+{ #category : #analysis }
 TimeAndMemorySlave >> applyChangeAndRunAnalyses [
-	"compute all tests and selected tests for change"
-
 	self manageBuildCache.
-	self flag: 'Nicolas: not sure why we perform analyses here ?1?!?'.
 	self changeMustBePerformedAfterAnalysis
 		ifTrue: [ "method removal"
 			self performAnalysis.
@@ -52,11 +49,10 @@ TimeAndMemorySlave >> applyChangeAndRunAnalyses [
 { #category : #'experiment-preparation' }
 TimeAndMemorySlave >> changeImageNameAndQuit [
 	(Smalltalk saveAs: self runningImageBaseName)
-		ifFalse: [
-			Author fullName: 'TimeAndMemoryExperimenter'.
-			self signalEndOfProcess: self prepareSignal.
-			Smalltalk snapshot: false andQuit: true
-		]
+		ifTrue: [ ^ self ].
+	Author fullName: 'TimeAndMemoryExperimenter'.
+	self signalEndOfProcess: self prepareSignal.
+	Smalltalk snapshot: false andQuit: true
 ]
 
 { #category : #'ombu changes' }
@@ -76,7 +72,7 @@ TimeAndMemorySlave >> loadChangesBefore: aChangeNumber [
 	^ false
 ]
 
-{ #category : #analyses }
+{ #category : #analysis }
 TimeAndMemorySlave >> manageBuildCache [
 	| ts |
 	self createTestcases.
@@ -90,7 +86,6 @@ TimeAndMemorySlave >> manageBuildCache [
 				put:
 					[ finder resetCache.
 					finder buildCacheFromTestSuite: ts ] timeToRunInMicroSeconds ]
-	"No need for oracleFinder while we don't calculate the confusion table."
 ]
 
 { #category : #'tests stats' }
@@ -98,15 +93,12 @@ TimeAndMemorySlave >> numberOfTests: aCollectionOfTestSuites [
 	^ (aCollectionOfTestSuites flatCollect: #flatCollectTests) size
 ]
 
-{ #category : #analyses }
+{ #category : #analysis }
 TimeAndMemorySlave >> performAnalysis: aSymbol [
-	"Considering #at:at:put: runtime to be negligible"
-
-	| timeToRun |
-	timeToRun := [ smTResults
-		at: aSymbol
-		at: #testsToRun
-		put: (super performAnalysis: aSymbol) ] timeToRunInMicroSeconds.
+	| timeToRun testsSelection |
+	timeToRun := [ testsSelection := super performAnalysis: aSymbol	"Considering affectation run-time to be negligible" ]
+		timeToRunInMicroSeconds.
+	smTResults at: aSymbol at: #testsToRun put: testsSelection.
 	smTResults at: aSymbol at: #analysisTime put: timeToRun
 ]
 
@@ -118,10 +110,7 @@ TimeAndMemorySlave >> prepareForChange: aChangeNumber myDatasetName: datasetName
 
 	self recoverChange: aChangeNumber inDataset: datasetName.
 	self resetRunningImage.
-
 	self loadChangesBefore: aChangeNumber.
-	self applyChangeAndRunAnalyses.
-
 	self changeImageNameAndQuit
 ]
 
@@ -166,6 +155,7 @@ TimeAndMemorySlave >> resetRunningImage [
 TimeAndMemorySlave >> runExperiment: anInt [
 	| allTestsTime |
 	expNumber := anInt.
+	self applyChangeAndRunAnalyses.
 	allTestsTime := self timeForTestSuites.
 	smTResults
 		keysAndValuesDo: [ :key :results | 
