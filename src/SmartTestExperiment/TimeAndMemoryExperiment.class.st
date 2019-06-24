@@ -37,20 +37,21 @@ TimeAndMemoryExperiment class >> rootDir [
 ]
 
 { #category : #exportToCSV }
+TimeAndMemoryExperiment >> columnNames [
+	^ #(' Cache Building time' ' Analysis Time' ' Time for Selected Tests'' Selected tests')
+		collect: [ :title | smTFinders keys collect: [ :key | key asString , title ] ]
+]
+
+{ #category : #exportToCSV }
 TimeAndMemoryExperiment >> createCSVHeader [
 	self
 		saveCSVLine:
 			{'Dataset'.
-			'change number'.
-			'changed method'.
-			'#all tests'.
-			'time all tests'.
-			(smTFinders keys
-				collect: [ :key | 
-					{('selected test ' , key asString).
-					('cache building time ' , key asString).
-					('analysis time ' , key asString).
-					('time selected tests ' , key asString)} ])} flattened
+			'Change Number'.
+			'Changed Method'.
+			'#All Tests'.
+			'Time for all Tests'.
+			self columnNames} flattened
 ]
 
 { #category : #accessing }

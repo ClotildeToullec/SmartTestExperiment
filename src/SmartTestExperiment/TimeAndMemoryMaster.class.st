@@ -75,17 +75,16 @@ TimeAndMemoryMaster class >> runExperiment: resetCSV [
 	 run:
 		TimeAndMemoryExperiment runExperiment: false.
 	"
+
 	runningExperiment := self new: self ungenericFindersSourceCode.
 	"runningExperiment addDataSet: ApplicationDataSet ForwardChainer."
 	runningExperiment addDataSet: ApplicationDataSet LANSimulation.
-"	runningExperiment addDataSet: ApplicationDataSet MooseQuery.
+	"	runningExperiment addDataSet: ApplicationDataSet MooseQuery.
 	runningExperiment addDataSet: ApplicationDataSet Pheme.
 	runningExperiment addDataSet: ApplicationDataSet Pillar.
 	runningExperiment addDataSet: ApplicationDataSet PostgreSQL."
 	runningExperiment eraseCSV: resetCSV.
 	runningExperiment run
-
-	
 ]
 
 { #category : #finders }

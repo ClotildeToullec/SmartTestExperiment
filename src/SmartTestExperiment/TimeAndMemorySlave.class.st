@@ -7,7 +7,11 @@ Class {
 	#name : #TimeAndMemorySlave,
 	#superclass : #TimeAndMemoryExperiment,
 	#instVars : [
-		'expNumber'
+		'expNumber',
+		'row',
+		'testSelections',
+		'timeForAnalyses',
+		'timeToBuildCaches'
 	],
 	#classInstVars : [
 		'runningExperiment'
@@ -26,10 +30,6 @@ TimeAndMemorySlave class >> new [
 	smTFinders := CodeImporter evaluateFileNamed: 'SmartFinders.st'.
 	^ self basicNew
 		smTFinders: smTFinders;
-		smTResults:
-			(OrderedDictionary
-				newFromKeys: smTFinders keys
-				andValues: (Array new: smTFinders size withAll: self resultsFormat));
 		initialize;
 		yourself
 ]
@@ -46,7 +46,7 @@ TimeAndMemorySlave >> applyChangeAndRunAnalyses [
 			self performAnalysis ]
 ]
 
-{ #category : #'experiment-preparation' }
+{ #category : #preparation }
 TimeAndMemorySlave >> changeImageNameAndQuit [
 	(Smalltalk saveAs: self runningImageBaseName)
 		ifTrue: [ ^ self ].
@@ -75,15 +75,12 @@ TimeAndMemorySlave >> loadChangesBefore: aChangeNumber [
 { #category : #analysis }
 TimeAndMemorySlave >> manageBuildCache [
 	| ts |
-	self createTestcases.
 	ts := TestSuite new.
 	ts addTests: collectionOfTestSuites.
 	smTFinders
-		keysAndValuesDo: [ :key :finder | 
-			smTResults
-				at: key
-				at: #buildCacheTime
-				put:
+		valuesDo: [ :finder | 
+			timeToBuildCaches
+				add:
 					[ finder resetCache.
 					finder buildCacheFromTestSuite: ts ] timeToRunInMicroSeconds ]
 ]
@@ -96,13 +93,13 @@ TimeAndMemorySlave >> numberOfTests: aCollectionOfTestSuites [
 { #category : #analysis }
 TimeAndMemorySlave >> performAnalysis: aSymbol [
 	| timeToRun testsSelection |
-	timeToRun := [ testsSelection := super performAnalysis: aSymbol	"Considering affectation run-time to be negligible" ]
-		timeToRunInMicroSeconds.
-	smTResults at: aSymbol at: #testsToRun put: testsSelection.
-	smTResults at: aSymbol at: #analysisTime put: timeToRun
+	timeToRun := [ testsSelection := super performAnalysis: aSymbol ]
+		timeToRunInMicroSeconds.	"Considering affectation run-time to be negligible"
+	testSelections add: testsSelection.
+	timeForAnalyses add: timeToRun
 ]
 
-{ #category : #'experiment-preparation' }
+{ #category : #preparation }
 TimeAndMemorySlave >> prepareForChange: aChangeNumber myDatasetName: datasetName [
 	"we are in an image specific to the data set chosen, so we should not need the datasetName
 	 but it is easier to recover it from the command line parameters than to prepare each of the
@@ -121,50 +118,75 @@ TimeAndMemorySlave >> quitImage [
 	Smalltalk snapshot: false andQuit: true
 ]
 
-{ #category : #'experiment-preparation' }
+{ #category : #preparation }
 TimeAndMemorySlave >> recoverChange: aChangeNumber inDataset: datasetName [
 	dataSet := ApplicationDataSet perform: datasetName.	"recover my dataset informations"
 	currentChange := dataSet changeAtPos: aChangeNumber
 ]
 
-{ #category : #'experiment-running' }
-TimeAndMemorySlave >> reportTestTimes: allTestsTime [
-	"see CSV header line in TimeAndMemoryExperiment>>eraseCSV:"
-
-	self
-		saveCSVLine:
-			{dataSet name.
-			self changeNumber.
-			currentChange content methodAffected fullName asString.
-			(self numberOfTests: collectionOfTestSuites).
-			allTestsTime.
-			(smTResults
-				collect: [ :result | 
-					{(result at: #testsToRun) size.
-					(result at: #buildCacheTime).
-					(result at: #analysisTime).
-					(result at: #testRunTime)} ]) values} flattened
+{ #category : #'experiment-report' }
+TimeAndMemorySlave >> reportAllTests [
+	row
+		addAll:
+			{(self numberOfTests: collectionOfTestSuites).
+			self timeForTestSuites}
 ]
 
-{ #category : #'experiment-preparation' }
+{ #category : #'experiment-report' }
+TimeAndMemorySlave >> reportResults [
+	self
+		reportAllTests;
+		reportSmartTestResults;
+		saveCSVLine: row
+]
+
+{ #category : #'experiment-report' }
+TimeAndMemorySlave >> reportSmartTestResults [
+	row addAll: timeToBuildCaches.
+	row addAll: timeForAnalyses.
+	row
+		addAll:
+			(testSelections collect: [ :selection | self timeForTests: selection ]).
+	row addAll: (testSelections collect: [ :selection | selection size ])
+]
+
+{ #category : #'experiment-reset' }
+TimeAndMemorySlave >> resetExperiment [
+	self resetResults.
+	self resetRow
+]
+
+{ #category : #'experiment-reset' }
+TimeAndMemorySlave >> resetResults [
+	timeToBuildCaches := OrderedCollection new.
+	timeForAnalyses := OrderedCollection new.
+	testSelections := OrderedCollection new
+]
+
+{ #category : #'experiment-reset' }
+TimeAndMemorySlave >> resetRow [
+	row := OrderedCollection new.
+	row
+		addAll:
+			{dataSet name.
+			self changeNumber.
+			currentChange content methodAffected fullName asString}
+]
+
+{ #category : #preparation }
 TimeAndMemorySlave >> resetRunningImage [
 	self runningImageName asFileReference deleteIfAbsent: [ "nothing" ]
 ]
 
 { #category : #'experiment-running' }
 TimeAndMemorySlave >> runExperiment: anInt [
-	| allTestsTime |
 	expNumber := anInt.
-	self applyChangeAndRunAnalyses.
-	allTestsTime := self timeForTestSuites.
-	smTResults
-		keysAndValuesDo: [ :key :results | 
-			smTResults
-				at: key
-				at: #testRunTime
-				put: (self timeForTests: (results at: #testsToRun)) ].
-	self reportTestTimes: allTestsTime.
-	self quitImage
+	self
+		resetExperiment;
+		createTestcases;
+		applyChangeAndRunAnalyses;
+		reportResults;
+		quitImage
 ]
 
 { #category : #processes }
