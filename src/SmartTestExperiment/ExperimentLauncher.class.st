@@ -1002,7 +1002,7 @@ ExperimentLauncher >> measurements [
 ExperimentLauncher >> noSmartTestAnalysis [
 	logger logNoSmarttestAnalysis.
 	self changeShouldBeApplied
-		ifTrue: [ self manageChange ]
+		ifTrue: [ self processChange ]
 ]
 
 { #category : #accessing }
