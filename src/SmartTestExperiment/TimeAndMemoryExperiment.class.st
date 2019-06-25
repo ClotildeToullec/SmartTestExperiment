@@ -38,7 +38,7 @@ TimeAndMemoryExperiment class >> rootDir [
 
 { #category : #exportToCSV }
 TimeAndMemoryExperiment >> columnNames [
-	^ #(' Cache Building time' ' Analysis Time' ' Time for Selected Tests'' Selected tests')
+	^ #(' Cache Building time' ' Analysis Time' ' Time for Selected Tests' ' Selected tests')
 		collect: [ :title | smTFinders keys collect: [ :key | key asString , title ] ]
 ]
 

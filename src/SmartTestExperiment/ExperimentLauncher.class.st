@@ -149,8 +149,8 @@ ExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: en
 	]
 ]
 
-{ #category : #'generic experiment' }
-ExperimentLauncher class >> logFile: aProjectName number: i [
+{ #category : #private }
+ExperimentLauncher class >> logFileName: aProjectName number: i [
 	^ String
 		streamContents: [ :stream | 
 			stream
@@ -162,8 +162,8 @@ ExperimentLauncher class >> logFile: aProjectName number: i [
 				<< '.log' ]
 ]
 
-{ #category : #'generic experiment' }
-ExperimentLauncher class >> ombuFile: aProjectName number: i [
+{ #category : #private }
+ExperimentLauncher class >> ombuFileName: aProjectName number: i [
 	^ String
 		streamContents: [ :stream | 
 			stream
@@ -174,6 +174,12 @@ ExperimentLauncher class >> ombuFile: aProjectName number: i [
 				<< '_0';
 				<< i asString;
 				<< '.ombu' ]
+]
+
+{ #category : #private }
+ExperimentLauncher class >> ombuFilesInProject: aProjectName [
+	^ (self rootDir , aProjectName , '/ombu-sessions/') asFileReference
+		files select: [ :file | file extension = 'ombu' ]
 ]
 
 { #category : #'instance creation' }
@@ -245,9 +251,107 @@ ExperimentLauncher class >> resultsFormat [
 	^ IdentityDictionary new
 ]
 
-{ #category : #'generic experiment' }
+{ #category : #private }
 ExperimentLauncher class >> rootDir [
 	^ '/home/clotilde/Documents/Stage/Projets/'
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
+	"Packages will not be erased before experiment"
+
+	| files |
+	files := self ombuFilesInProject: aProjectName.
+	self
+		runKeepingPackagesScenario: aProjectName
+		ombuFiles: (1 to: files size)
+		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
+		withFinders: self defaultFinders
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
+	"One experiment for each ombu file.	Packages will not be erased before experiment"
+
+	| el |
+	EpMonitor current disable.
+	self resetLastRun.
+	fileNumbers
+		do: [ :i | 
+			el := self
+				onOmbuFiles: {(self ombuFileName: aProjectName number: i)}
+				logFileName: (self logFileName: aProjectName number: i)
+				withPackages: aPackagesCollection
+				withFinders: aSmartFindersDictionary.
+			el
+				prepare: false;
+				run;
+				terminate.
+			SmalltalkImage current snapshot: true andQuit: false ].
+	EpMonitor current enable
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName withFinders: smartFindersDictionary [
+	"Packages will not be erased before experiment"
+
+	| files |
+	files := self ombuFilesInProject: aProjectName.
+	self
+		runKeepingPackagesScenario: aProjectName
+		ombuFiles: (1 to: files size)
+		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
+		withFinders: smartFindersDictionary
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runScenario: aProjectName [
+	"Erase package before the first experiment"
+
+	| files |
+	files := self ombuFilesInProject: aProjectName.
+	self
+		runScenario: aProjectName
+		ombuFiles: (1 to: files size)
+		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
+		withFinders: self defaultFinders
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
+	"One experiment for each ombu file. Erase package before the first experiment"
+
+	| el firstFile |
+	EpMonitor current disable.
+	self resetLastRun.
+	firstFile := fileNumbers first.
+	fileNumbers
+		do: [ :i | 
+			el := self
+				onOmbuFiles: {(self ombuFileName: aProjectName number: i)}
+				logFileName: (self logFileName: aProjectName number: i)
+				withPackages: aPackagesCollection
+				withFinders: aSmartFindersDictionary.
+			el
+				prepare: i = firstFile;
+				"if first file, erase package first, otherwise keep it"
+					run;
+				terminate.
+			SmalltalkImage current snapshot: true andQuit: false ].
+	EpMonitor current enable
+]
+
+{ #category : #'generic experiment' }
+ExperimentLauncher class >> runScenario: aProjectName withFinders: smartFindersDictionary [
+	"Erase package before the first experiment"
+
+	| files |
+	files := self ombuFilesInProject: aProjectName.
+	self
+		runScenario: aProjectName
+		ombuFiles: (1 to: files size)
+		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
+		withFinders: smartFindersDictionary
 ]
 
 { #category : #scenarios }
@@ -316,28 +420,12 @@ ExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
 	]
 ]
 
-{ #category : #'generic experiment' }
-ExperimentLauncher class >> runTestScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
-	"One experiment for each ombu file. Erase package before the first experiment"
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioDataFrame [
+	"Need for Roassal3-Examples for changes 17 & 18 of 2nd pmbu file."
 
-	| el firstFile |
-	EpMonitor current disable.
-	self resetLastRun.
-	firstFile := fileNumbers first.
-	fileNumbers
-		do: [ :i | 
-			el := self
-				onOmbuFiles: {(self ombuFile: aProjectName number: i)}
-				logFileName: (self logFile: aProjectName number: i)
-				withPackages: aPackagesCollection
-				withFinders: aSmartFindersDictionary.
-			el
-				prepare: i = firstFile;
-				"if first file, erase package first, otherwise keep it"
-					run;
-				terminate.
-			SmalltalkImage current snapshot: true andQuit: false ].
-	EpMonitor current enable
+	<script>
+	self runScenario: 'DataFrame'
 ]
 
 { #category : #scenarios }
@@ -362,33 +450,13 @@ ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 	]
 ]
 
-{ #category : #scenarios }
+{ #category : #LANEx }
 ExperimentLauncher class >> runTestScenarioLanEx [
-	"self runTestScenarioLanEx"
-
 	<script>
-	| el |
-	EpMonitor current disable.
-	self resetLastRun.
-	1 to: 2 do: [ :i | 
-		| ombFile logFile |
-		ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_0'
-			, i asString , '.ombu'.
-		logFile := 'LANSimulation' , i asString , '.log'.
-		el := self
-			onOmbuFiles: {ombFile}
-			logFileName: logFile
-			withPackages: {'LANSimulation'}.
-		el
-			prepare: i = 1;
-			"if i=1, erase LANSimulation package first, otherwise keep it"
-				run;
-			terminate.
-		SmalltalkImage current snapshot: true andQuit: false ].
-	EpMonitor current enable
+	self runScenario: 'LANSimulation'
 ]
 
-{ #category : #scenarios }
+{ #category : #LANEx }
 ExperimentLauncher class >> runTestScenarioLanExQuick [
 	"Used only to test non-regression while refactoring"
 
@@ -411,11 +479,8 @@ ExperimentLauncher class >> runTestScenarioLanExQuick [
 	EpMonitor current enable
 ]
 
-{ #category : #scenarios }
+{ #category : #LANEx }
 ExperimentLauncher class >> runTestScenarioLanExQuickReflectivity [
-	"Used only to test non-regression while refactoring"
-
-	<script>
 	| el ombFile logFile |
 	EpMonitor current disable.
 	self resetLastRun.
@@ -434,31 +499,14 @@ ExperimentLauncher class >> runTestScenarioLanExQuickReflectivity [
 	EpMonitor current enable
 ]
 
-{ #category : #scenarios }
+{ #category : #LANEx }
 ExperimentLauncher class >> runTestScenarioLanExUngeneric [
 	"self runTestScenarioLanEx"
 
 	<script>
-	| el |
-	EpMonitor current disable.
-	self resetLastRun.
-	1 to: 2 do: [ :i | 
-		| ombFile logFile |
-		ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_0'
-			, i asString , '.ombu'.
-		logFile := 'LANSimulation' , i asString , '.log'.
-		el := self
-			onOmbuFiles: {ombFile}
-			logFileName: logFile
-			withPackages: {'LANSimulation'}
-			withFinders: self ungenericFinders.
-		el
-			prepare: i = 1;
-			"if i=1, erase LANSimulation package first, otherwise keep it"
-				run;
-			terminate.
-		SmalltalkImage current snapshot: true andQuit: false ].
-	EpMonitor current enable
+	self
+		runScenario: 'LANSimulation'
+		withFinders: self ungenericFinders
 ]
 
 { #category : #scenarios }
@@ -522,52 +570,31 @@ ExperimentLauncher class >> runTestScenarioPheme: aCollection [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioTDD [
-"Bug at change 314. Unknown classes"
+ExperimentLauncher class >> runTestScenarioPolyMath [
 	<script>
-	self
-		runTestScenario: 'TDD'
-		ombuFiles: #(1 2 3)
-		packages:
-			{'BaselineOfPharoSettings' . 'PharoSettings' . 'PharoSettings5'.
-			'PharoSettings6' . 'BaselineOfNativeBrowser'.
-			'Native-Browser' . 'PharoSettings7' . '	BaselineOfFurro'.
-			'Furro' . 'BaselineOfCarrefour' . 'BaselineOfFASTJava'.
-			'BaselineOfFAST' . 'FAST-Core-Model' . 'FAST-Core-Visitor'.
-			'FAST-Model-Generator' . 'FAST-Java-Model' . 'FAST-Java-Model-Generator'.
-			'FAST-Java-SmaCC-Importer' . 'FAST-Java-SmaCC-Importer-Tests'.
-			'FAST-Java-Visitor' . 'Carrefour-Model-Generator'.
-			'Carrefour-FastAndBindingGenerator'.
-			'Carrefour-FastAndBindingGenerator-Tests'.
-			'Carrefour-Extension' . 'Carrefour-RemoveBinding'.
-			'Carrefour-RemoveBinding-Tests'}
-		withFinders: self defaultFinders
+	self runKeepingPackagesScenario: 'PolyMath'
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioTDD [
+	"Bug at change 314. Unknown classes"
+
+	<script>
+	self runScenario: 'TDD'
 ]
 
 { #category : #scenarios }
 ExperimentLauncher class >> runTextScenarioTFIDF [
 	<script>
-	self
-		runTestScenario: 'TF-IDF'
-		ombuFiles: #(1 2) "File 3 is only renaming"
-		packages:
-			{'TF-IDF' . 'CodeTokenizer' . 'ConfigurationOfNeoCSV'.
-			'Neo-CSV-Core' . 'Neo-CSV-Tests' . 'TF-IDF-Tests'}
-		withFinders: self defaultFinders
+	self runScenario: 'TF-IDF'
 ]
 
 { #category : #scenarios }
 ExperimentLauncher class >> runTextScenarioTinyBlog [
+	"Affected packages are widely used."
+
 	<script>
-	self
-		runTestScenario: 'TinyBlog'
-		ombuFiles: #(1 2 3 4)
-		packages:
-			((RPackageOrganizer default packages
-				collect: [ :pck | pck name asString ]) sorted
-				select:
-					[ :pck | (pck beginsWith: 'TB') or: [ pck includesSubstring: 'TinyBlog' ] ])
-		withFinders: self defaultFinders
+	self runKeepingPackagesScenario: 'TinyBlog'
 ]
 
 { #category : #utilities }
