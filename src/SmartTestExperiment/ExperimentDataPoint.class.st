@@ -69,6 +69,14 @@ ExperimentDataPoint >> falsePositive: anInt [
 	fp := anInt
 ]
 
+{ #category : #'as yet unclassified' }
+ExperimentDataPoint >> gtInspectorExperimentDataPointIn: composite [
+	<gtInspectorPresentationOrder: 0>
+	composite roassal2
+		title: 'Change' , id asString , ': ' , entity asString;
+		initializeView: [ self pieChart view ]
+]
+
 { #category : #accessing }
 ExperimentDataPoint >> id [
 	^ id
