@@ -27,7 +27,8 @@ Class {
 	#instVars : [
 		'changeList',
 		'oracle',
-		'measurements'
+		'measurements',
+		'visualizer'
 	],
 	#classInstVars : [
 		'lastRuns',
@@ -933,6 +934,11 @@ ExperimentLauncher >> initialize [
 	logger launcherMeasurements: measurements
 ]
 
+{ #category : #accessing }
+ExperimentLauncher >> keys [
+	^ smTFinders keys
+]
+
 { #category : #logging }
 ExperimentLauncher >> logMeasurementsPrecision [
 	| smarttestAdvice testsInOracle allTests |
@@ -1123,13 +1129,16 @@ ExperimentLauncher >> smarttestInterventionNeeded [
 
 { #category : #'actions-public' }
 ExperimentLauncher >> terminate [
-	| visualizer |
-	logger closelog.
+	"logger closelog."
+
 	visualizer := ExperimentVisualizer new.
-	visualizer measurements: measurements rows.
+	visualizer
+		measurements: measurements rows;
+		analysesSymbols: smTFinders keys.
 	smTFinders
-		keysDo: [ :key | visualizer visualizePrecisionForFinder: key ].
-	visualizer visualiseCodeChurnBarChart
+		keysDo: [ :key | visualizer visualizePrecisionForFinder: key withTrueNegatives: false ].
+	visualizer visualiseCodeChurnBarChart.
+	self visualizeResults
 ]
 
 { #category : #accessing }
@@ -1137,4 +1146,55 @@ ExperimentLauncher >> testsInOracle [
 	^ IdentitySet
 		withAll:
 			(oracle at: currentChange content methodAffected fullName ifAbsent: {})
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeComparison [
+	visualizer compareAllPrecisionsOfAnalyses: smTFinders keys definition: 'Comparison between analyses'
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeFalseNegatives [
+	visualizer
+		comparePrecision: #falseNegatives
+		ofAnalyses: smTFinders keys
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeFalsePositives [
+	visualizer
+		comparePrecision: #falsePositives
+		ofAnalyses: smTFinders keys
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeFalseResults [
+	visualizer
+		comparePrecisions: #(#falsePositives #falseNegatives)
+		ofAnalyses: smTFinders keys
+		definition: 'Comparison of false results between analyses'
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeResults [
+	visualizer visualizeResultsOfAnalyses: smTFinders keys
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeTrueNegatives [
+	visualizer
+		comparePrecision: #trueNegatives
+		ofAnalyses: smTFinders keys
+]
+
+{ #category : #visualization }
+ExperimentLauncher >> visualizeTruePositives [
+	visualizer
+		comparePrecision: #truePositives
+		ofAnalyses: smTFinders keys
+]
+
+{ #category : #accessing }
+ExperimentLauncher >> visualizer [
+	^ visualizer 
 ]

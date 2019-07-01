@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'measurements',
 		'colorDictionary',
-		'measurementsKeys'
+		'measurementsKeys',
+		'analysesSymbols'
 	],
 	#classInstVars : [
 		'aCollectionOfMeasurementsRows'
@@ -19,7 +20,7 @@ ExperimentVisualizer >> addTo: aGrapher barChart: dataPoints for: barSymbol [
 	ds points: dataPoints.
 	ds y: [ :dp | self valueFor: barSymbol dataPoint: dp ].
 	ds interaction popup
-		text: [ :dp | dp id asString , ' - ' , dp change , String cr , dp entity ];
+		text: [ :dp | dp popupText ];
 		backgroundColor: Color white;
 		alphaPopupBackground: 0.8.
 	ds barShape color: (colorDictionary at: barSymbol).
@@ -30,66 +31,51 @@ ExperimentVisualizer >> addTo: aGrapher barChart: dataPoints for: barSymbol [
 	aGrapher add: ds
 ]
 
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> averagePrecision [
-	| precision objects |
-	objects := Dictionary new.
-	precision := #(#truePositives #trueNegatives #falsePositives #falseNegatives).
-	precision
-		do: [ :symbol | 
-			| results |
-			results := measurementsKeys
-				select: [ :name | name includesSubstring: symbol ]
-				thenCollect: [ :name | (measurements collect: [ :row | row at: name ]) sum ].
-			objects at: symbol put: results average ].
-	^ objects
-]
-
 { #category : #accessing }
-ExperimentVisualizer >> colorsPrecisionComparison [
-	^ RTColorPalette qualitative colors: 12 scheme: 'Paired'
-]
-
-{ #category : #accessing }
-ExperimentVisualizer >> colorsPrecisionPie [
-	^ {(Color
-		r: 0.1
-		g: 0.8
-		b: 0.2
-		alpha: 1.0).
-	(Color
-		r: 0.0
-		g: 0.6
-		b: 1.0
-		alpha: 1.0).
-	Color red.
-	Color lightOrange}
+ExperimentVisualizer >> analysesSymbols: anObject [
+	analysesSymbols := anObject
 ]
 
 { #category : #'results analysis' }
-ExperimentVisualizer >> compareAllPrecisionsOfAnalyses: analysesSymbolsCollection [
+ExperimentVisualizer >> averagePrecision [
+	^ self averagePrecisionOfAnalyses: analysesSymbols
+]
+
+{ #category : #'results analysis' }
+ExperimentVisualizer >> averagePrecisionOfAnalyses: aSymbolsCollection [
+	^ OrderedDictionary
+		newFromKeys: self precisionSymbols
+		andValues: (self resultsOfAnalyses: aSymbolsCollection) values average
+]
+
+{ #category : #'bar graph comparison' }
+ExperimentVisualizer >> compareAllPrecisionsOfAnalyses: analysesSymbolsCollection definition: aString [
 	self
 		comparePrecisions: self precisionSymbols
 		ofAnalyses: analysesSymbolsCollection
+		definition: aString
 ]
 
-{ #category : #'results analysis' }
-ExperimentVisualizer >> comparePrecision: precisionSymbol ofAnalyses: analysesSymbols [
+{ #category : #'bar graph comparison' }
+ExperimentVisualizer >> comparePrecision: precisionSymbol ofAnalyses: analysesSymbolsCollection [
 	| data graph |
 	data := self
 		dataForPrecision: precisionSymbol
-		ofAnalyses: analysesSymbols.
+		ofAnalyses: analysesSymbolsCollection.
 	graph := RTGrapher new.
 	graph add: data.
 	graph legend.
 	graph axisX
 		noDecimal;
 		noTick.
-	^ graph
+	graph build.
+	graph view
+		@ RTZoomableView;
+		openTitled: (self symbolToString: precisionSymbol)
 ]
 
-{ #category : #'results analysis' }
-ExperimentVisualizer >> comparePrecisions: aPrecisionSymbolsCollection ofAnalyses: anAnalysesSymbolsCollection [
+{ #category : #'bar graph comparison' }
+ExperimentVisualizer >> comparePrecisions: aPrecisionSymbolsCollection ofAnalyses: anAnalysesSymbolsCollection definition: aString [
 	| data graph |
 	data := self
 		dataForComparison: aPrecisionSymbolsCollection
@@ -97,7 +83,15 @@ ExperimentVisualizer >> comparePrecisions: aPrecisionSymbolsCollection ofAnalyse
 	graph := RTGrapher new.
 	graph add: data.
 	self legendIn: graph for: anAnalysesSymbolsCollection.
-	^ graph
+	graph build.
+	graph view
+		@ RTZoomableView;
+		openTitled: aString
+]
+
+{ #category : #accessing }
+ExperimentVisualizer >> comparisonColors [
+	^ RTColorPalette qualitative colors: 12 scheme: 'Paired'
 ]
 
 { #category : #utility }
@@ -132,27 +126,45 @@ ExperimentVisualizer >> createLineChart: symbol [
 	^ ds
 ]
 
-{ #category : #'results analysis' }
+{ #category : #'average PieChart' }
+ExperimentVisualizer >> createPieChart: objects [
+	| pie legend |
+	pie := RTPieBuilder new.
+	pie interaction popup.
+	pie shape
+		color:
+			(RTNExplicitIdentityNormalizer new colors: self precisionColors values).
+	pie objects: objects keys.
+	pie slice: [ :symbol | objects at: symbol ].
+	pie
+		labeledIf: [ :key | (objects at: key) > 0 ]
+		withBlock: (self pieSliceLegendBlock: objects).
+	legend := RTLegendBuilder new.
+	legend view: pie view.
+	legend
+		addText: 'Total: ' , objects values sum asString , ' tests.';
+		build.
+	^ pie
+]
+
+{ #category : #'bar graph comparison' }
 ExperimentVisualizer >> dataForComparison: precisionSymbols between: analysesSymbols [
 	| data |
 	data := RTHorizontalMultipleData new.
-	data colors: self colorsPrecisionComparison.
+	data colors: self comparisonColors.
 	data
 		points:
 			(precisionSymbols
 				collect: [ :precisionSymbol | self getTotal: precisionSymbol ]).
-	analysesSymbols size
-		do: [ :i | data addMetric: [ :point | point at: i + 1 ] ].
-	data
-		barChartWithBarTitle: [ :point | self symbolToString: point first ]
-		rotation: 0.
+	1 to: analysesSymbols size do: [ :i | data addMetric: [ :point | point second at: i ] ].
+	data barChartWithBarTitle: [ :point | point first ] rotation: -30.
 	^ data
 ]
 
-{ #category : #'results analysis' }
-ExperimentVisualizer >> dataForPrecision: precisionSymbol ofAnalyses: analysesSymbols [
+{ #category : #'bar graph comparison' }
+ExperimentVisualizer >> dataForPrecision: precisionSymbol ofAnalyses: analysesSymbolsCollection [
 	| keys d data |
-	keys := analysesSymbols
+	keys := analysesSymbolsCollection
 		collect: [ :symbol | precisionSymbol , symbol capitalized ].
 	data := OrderedDictionary
 		newFromKeys: keys
@@ -162,7 +174,7 @@ ExperimentVisualizer >> dataForPrecision: precisionSymbol ofAnalyses: analysesSy
 	d := self
 		createBarchartData: data values
 		label: (self symbolToString: precisionSymbol)
-		color: self colorsPrecisionComparison second.
+		color: (self precisionColors at: precisionSymbol).
 	d
 		barChartWithBarTitle: [ :value | 
 			self
@@ -177,7 +189,7 @@ ExperimentVisualizer >> getTotal: precisionSymbol [
 		select: [ :key | key includesSubstring: precisionSymbol ].
 	total := keys
 		collect: [ :key | (measurements collect: [ :row | row at: key ]) sum ].
-	^ {precisionSymbol.
+	^ {(self symbolToString: precisionSymbol).
 	total}
 ]
 
@@ -208,9 +220,12 @@ ExperimentVisualizer >> legendIn: graph for: anAnalysesSymbolsCollection [
 	anAnalysesSymbolsCollection
 		doWithIndex: [ :symbol :index | 
 			legend
-				addColor: (self colorsPrecisionComparison at: index)
+				addColor: (self comparisonColors at: index)
 				text: (self symbolToString: symbol) ].
-	legend build
+	legend
+		offset: 100;
+		left;
+		build
 ]
 
 { #category : #precision }
@@ -237,10 +252,11 @@ ExperimentVisualizer >> measurements: aCollectionOfMeasurementsRows [
 ]
 
 { #category : #precision }
-ExperimentVisualizer >> openBarGraph: aString withData: dataPoints [
+ExperimentVisualizer >> openBarGraph: aString withData: dataPoints withTrueNegatives: aBoolean [
 	| b |
 	b := RTGrapher new.
-	self addTo: b barChart: dataPoints for: #trueNegatives.
+	aBoolean
+		ifTrue: [ self addTo: b barChart: dataPoints for: #trueNegatives ].
 	self addTo: b barChart: dataPoints for: #falseNegatives.
 	self addTo: b barChart: dataPoints for: #falsePositives.
 	self addTo: b barChart: dataPoints for: #truePositives.
@@ -252,40 +268,140 @@ ExperimentVisualizer >> openBarGraph: aString withData: dataPoints [
 		title: '# Tests for strategy: ' , aString;
 		noDecimal.
 	b legend right.
-	b inspect
+	^ b
+]
+
+{ #category : #precision }
+ExperimentVisualizer >> openTNBarGraph: aString withData: dataPoints [
+	| b |
+	b := RTGrapher new.
+	self addTo: b barChart: dataPoints for: #trueNegatives.
+	b axisX
+		title: 'System Evolution';
+		noDecimal;
+		noTick.
+	b axisY
+		title: '# Tests for strategy: ' , aString;
+		noDecimal.
+	b legend right.
+	^ b
 ]
 
 { #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartAveragePrecision: objects [
-	| pie |
-	pie := RTPieBuilder new.
-	pie interaction popup.
-	pie shape
-		color:
-			(RTNExplicitIdentityNormalizer new
-				colors: self colorsPrecisionPie).
-	pie objects: objects keys.
-	pie slice: [ :symbol | objects at: symbol ].
-	pie labeledIf: true withBlock: [ :key | (objects at: key) asString ].
-	^ pie
+ExperimentVisualizer >> pieChartAveragePrecisionOfAnalyses: aSymbolsCollection definition: aString [
+	| pie objects |
+	objects := self averagePrecisionOfAnalyses: aSymbolsCollection.
+	pie := self createPieChart: objects.
+	self pieChartLegendIn: pie view.
+	pie view
+		@ RTZoomableView;
+		openTitled: 'Average precision for ' , aString
 ]
 
 { #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartLegend: pie objects: objects [
+ExperimentVisualizer >> pieChartLegendIn: aView [
 	| legend |
 	legend := RTLegendBuilder new.
-	legend view: pie view.
-	objects
-		keysDo: [ :aResult | 
+	legend view: aView.
+	self precisionSymbols
+		do: [ :symbol | 
 			| aColor |
-			aColor := (pie view elementFromModel: aResult) trachelShape color.
-			legend addColor: aColor text: (self symbolToString: aResult) ].
-	legend build
+			aColor := self precisionColors at: symbol.
+			legend addColor: aColor text: (self symbolToString: symbol) ].
+	legend build.
+]
+
+{ #category : #'average PieChart' }
+ExperimentVisualizer >> pieChartPrecisionOfAnalyses: aSymbolsCollection [
+	aSymbolsCollection
+		do: [ :symbol | self pieChartPrecisionOfAnalysis: symbol ]
+]
+
+{ #category : #'average PieChart' }
+ExperimentVisualizer >> pieChartPrecisionOfAnalysis: anAnalysisSymbol [
+	| pie objects |
+	objects := self precisionOfAnalysis: anAnalysisSymbol.
+	pie := self createPieChart: objects.
+	self pieChartLegendIn: pie view.
+	pie view
+		@ RTZoomableView;
+		openTitled: 'Precision for ' , (self symbolToString: anAnalysisSymbol)
+]
+
+{ #category : #'average PieChart' }
+ExperimentVisualizer >> pieChartTotalAveragePrecision [
+	| pie objects |
+	objects := self averagePrecision.
+	pie := self createPieChart: objects.
+	self pieChartLegendIn: pie view.
+	pie view
+		@ RTZoomableView;
+		openTitled: 'Average precision for all tested Strategies'
+]
+
+{ #category : #'average PieChart' }
+ExperimentVisualizer >> pieSliceLegendBlock: objects [
+	^ [ :key | 
+	| nbOfTests |
+	nbOfTests := objects at: key.
+	String
+		streamContents: [ :stream | 
+			nbOfTests isInteger
+				ifTrue: [ stream
+						<< nbOfTests asString;
+						<< ' tests';
+						cr ].
+			stream
+				<< ((nbOfTests / objects values sum * 100) asFloat round: 2) asString;
+				<< '%' ] ]
+]
+
+{ #category : #accessing }
+ExperimentVisualizer >> precisionColors [
+	^ OrderedDictionary
+		newFromKeys: self precisionSymbols
+		andValues:
+			{(Color
+				r: 0.1
+				g: 0.8
+				b: 0.2
+				alpha: 1.0).
+			(Color
+				r: 0.0
+				g: 0.6
+				b: 1.0
+				alpha: 1.0).
+			Color lightOrange.
+			Color red}
+]
+
+{ #category : #'results analysis' }
+ExperimentVisualizer >> precisionOfAnalysis: anAnalysisSymbol [
+	^ OrderedDictionary
+		newFromKeys: self precisionSymbols
+		andValues: (self resultsOfAnalysis: anAnalysisSymbol) value
 ]
 
 { #category : #accessing }
 ExperimentVisualizer >> precisionSymbols [
 	^ #(#truePositives #trueNegatives #falsePositives #falseNegatives)
+]
+
+{ #category : #'results analysis' }
+ExperimentVisualizer >> resultsOfAnalyses: aSymbolsCollection [
+	^ Dictionary
+		newFrom:
+			(aSymbolsCollection
+				collect: [ :symbol | self resultsOfAnalysis: symbol ])
+]
+
+{ #category : #'results analysis' }
+ExperimentVisualizer >> resultsOfAnalysis: anAnalysisSymbol [
+	| keys |
+	keys := self precisionSymbols
+		collect: [ :symbol | symbol , anAnalysisSymbol capitalized ].
+	^ (self symbolToString: anAnalysisSymbol)
+		-> (keys collect: [ :symbol | self totalAtKey: symbol ])
 ]
 
 { #category : #utility }
@@ -302,6 +418,11 @@ ExperimentVisualizer >> symbolToString: aSymbol [
 				ifTrue: [ stream space ].
 			stream << char ].
 	^ stream contents
+]
+
+{ #category : #accessing }
+ExperimentVisualizer >> totalAtKey: key [
+	^ (measurements collect: [ :row | row at: key ]) sum
 ]
 
 { #category : #accessing }
@@ -335,7 +456,9 @@ ExperimentVisualizer >> visualiseCacheSizeBarChart [
 		title: 'Cache Size';
 		noDecimal.
 	b legend right.
-	b inspect
+	b view
+		@ RTZoomableView;
+		openTitled: 'Cache Size'
 ]
 
 { #category : #'code churn' }
@@ -343,8 +466,7 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 	| b |
 	b := RTGrapher new.
 	#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified #testLinesAdded #testLinesDeleted #testLinesModified)
-		do:
-			[ :symbol | b add: (self createBarChart: symbol) ].
+		do: [ :symbol | b add: (self createBarChart: symbol) ].
 	b axisX
 		title: 'System Evolution';
 		noDecimal;
@@ -353,7 +475,9 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 		title: 'Code Churn';
 		noDecimal.
 	b legend right.
-	b inspect
+	b view
+		@ RTZoomableView;
+		openTitled: 'Code Churn'
 ]
 
 { #category : #'code churn' }
@@ -372,7 +496,9 @@ ExperimentVisualizer >> visualiseCodeChurnLineChart [
 		title: 'Code Churn';
 		noDecimal.
 	b legend right.
-	b inspect
+	b view
+		@ RTZoomableView;
+		openTitled: 'Code Churn'
 ]
 
 { #category : #'execution time' }
@@ -389,24 +515,38 @@ ExperimentVisualizer >> visualiseTestExecutionTime [
 		title: 'Test Execution Time';
 		noDecimal.
 	b legend right.
-	b inspect
-]
-
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> visualizeAveragePrecision [
-	| pie objects |
-	objects := self averagePrecision.
-	pie := self pieChartAveragePrecision: objects.
-	self pieChartLegend: pie objects: objects.
-	^ pie view
+	b open
 ]
 
 { #category : #precision }
-ExperimentVisualizer >> visualizePrecisionForFinder: aSymbol [
-	| precisions |
+ExperimentVisualizer >> visualizePrecisionForFinder: aSymbol withTrueNegatives: aBoolean [
+	| precisions grapher |
 	precisions := #(#truePositives #falsePositives #falseNegatives #trueNegatives)
 		collect: [ :keyword | keyword , aSymbol capitalized ].
-	self
-		openBarGraph: aSymbol asString capitalized
+	grapher := self
+		openBarGraph: (self symbolToString: aSymbol)
 		withData: (self makeDataPointsWithColumns: precisions)
+		withTrueNegatives: aBoolean.
+	grapher title: (self symbolToString: aSymbol) , ' SmartTest analysis'.
+	grapher build.
+	grapher view
+		@ RTZoomableView;
+		inspect
+]
+
+{ #category : #'stack bar plot' }
+ExperimentVisualizer >> visualizeResultsOfAnalyses: aSymbolsCollection [
+	| b |
+	b := RTStackBarPlot new.
+	b colorPalette colors: self precisionColors values.
+	(self resultsOfAnalyses: aSymbolsCollection)
+		keysAndValuesDo: [ :key :value | b add: value title: key ].
+	b interaction
+		popupText: [ :assoc | 
+			assoc key asString , ' '
+				, (self symbolToString: (self precisionSymbols at: assoc value)) ].
+	b build.
+	b view
+		@ RTZoomableView;
+		openTitled: 'Results of SmartTest evaluations'
 ]

@@ -68,6 +68,47 @@ ExperimentDataPoint >> id: anObject [
 	id := anObject
 ]
 
+{ #category : #'as yet unclassified' }
+ExperimentDataPoint >> pieChart [
+	| visualizer pie objects legend |
+	visualizer := ExperimentVisualizer new.
+	objects := OrderedDictionary
+		newFrom:
+			{(#truePositives -> self truePositive).
+			(#trueNegative -> self trueNegative).
+			(#falsePositive -> self falsePositive).
+			(#falseNegative -> self falseNegative)}.
+	pie := visualizer createPieChart: objects.
+	legend := visualizer pieChartLegendIn: pie view.
+	pie view @ RTZoomableView.
+	pie build.
+	^ pie
+]
+
+{ #category : #accessing }
+ExperimentDataPoint >> popupText [
+	^ String
+		streamContents: [ :stream | 
+			stream
+				<< self id asString;
+				<< ' - ';
+				<< self change;
+				cr;
+				<< self entity;
+				cr;
+				<< 'True Positives: ';
+				<< self truePositive asString;
+				cr;
+				<< 'True Negatives: ';
+				<< self trueNegative asString;
+				cr;
+				<< 'False Positives: ';
+				<< self falsePositive asString;
+				cr;
+				<< 'False Negatives: ';
+				<< self falseNegative asString ]
+]
+
 { #category : #accessing }
 ExperimentDataPoint >> trueNegative [
 		^ tn
