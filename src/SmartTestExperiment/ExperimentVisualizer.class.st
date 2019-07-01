@@ -13,7 +13,7 @@ Class {
 	#category : #'SmartTestExperiment-reporting'
 }
 
-{ #category : #precision }
+{ #category : #'bar graph' }
 ExperimentVisualizer >> addTo: aGrapher barChart: dataPoints for: barSymbol [
 	| ds |
 	ds := RTData new.
@@ -36,12 +36,12 @@ ExperimentVisualizer >> analysesSymbols: anObject [
 	analysesSymbols := anObject
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> averagePrecision [
 	^ self averagePrecisionOfAnalyses: analysesSymbols
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> averagePrecisionOfAnalyses: aSymbolsCollection [
 	^ OrderedDictionary
 		newFromKeys: self precisionSymbols
@@ -94,7 +94,7 @@ ExperimentVisualizer >> comparisonColors [
 	^ RTColorPalette qualitative colors: 12 scheme: 'Paired'
 ]
 
-{ #category : #utility }
+{ #category : #'code churn' }
 ExperimentVisualizer >> createBarChart: symbol [
 	^ self
 		createBarchartData: (measurements collect: [ :row | row at: symbol ])
@@ -102,7 +102,7 @@ ExperimentVisualizer >> createBarChart: symbol [
 		color: (colorDictionary at: symbol)
 ]
 
-{ #category : #utility }
+{ #category : #private }
 ExperimentVisualizer >> createBarchartData: collectionOfPoints label: aLabel color: aColor [
 	| ds |
 	ds := RTData new.
@@ -114,7 +114,7 @@ ExperimentVisualizer >> createBarchartData: collectionOfPoints label: aLabel col
 	^ ds
 ]
 
-{ #category : #utility }
+{ #category : #'code churn' }
 ExperimentVisualizer >> createLineChart: symbol [
 	| ds |
 	ds := RTData new.
@@ -126,7 +126,7 @@ ExperimentVisualizer >> createLineChart: symbol [
 	^ ds
 ]
 
-{ #category : #'average PieChart' }
+{ #category : #'pie chart' }
 ExperimentVisualizer >> createPieChart: objects [
 	| pie legend |
 	pie := RTPieBuilder new.
@@ -145,6 +145,19 @@ ExperimentVisualizer >> createPieChart: objects [
 		addText: 'Total: ' , objects values sum asString , ' tests.';
 		build.
 	^ pie
+]
+
+{ #category : #'pie chart' }
+ExperimentVisualizer >> createPrecisionLegendIn: aView [
+	| legend |
+	legend := RTLegendBuilder new.
+	legend view: aView.
+	self precisionSymbols
+		do: [ :symbol | 
+			| aColor |
+			aColor := self precisionColors at: symbol.
+			legend addColor: aColor text: (self symbolToString: symbol) ].
+	legend build.
 ]
 
 { #category : #'bar graph comparison' }
@@ -182,7 +195,7 @@ ExperimentVisualizer >> dataForPrecision: precisionSymbol ofAnalyses: analysesSy
 	^ d
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> getTotal: precisionSymbol [
 	| keys total |
 	keys := measurementsKeys
@@ -212,7 +225,7 @@ ExperimentVisualizer >> initialize [
 	(#reducedTestTimeDynamic -> Color blue)} asDictionary
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> legendIn: graph for: anAnalysesSymbolsCollection [
 	| legend |
 	legend := RTLegendBuilder new.
@@ -228,7 +241,7 @@ ExperimentVisualizer >> legendIn: graph for: anAnalysesSymbolsCollection [
 		build
 ]
 
-{ #category : #precision }
+{ #category : #'bar graph' }
 ExperimentVisualizer >> makeDataPointsWithColumns: columns [
 	"columns is a collection of { tp-column , fp-column , fn-column , tn-column }"
 
@@ -242,6 +255,9 @@ ExperimentVisualizer >> makeDataPointsWithColumns: columns [
 				falseNegative: (row at: columns third);
 				falsePositive: (row at: columns second);
 				truePositive: (row at: columns first);
+				changeInTest:
+					(#(#testLinesAdded #testLinesDeleted #testLinesModified)
+						anySatisfy: [ :symbol | (row at: symbol) > 0 ]);
 				yourself ]
 ]
 
@@ -251,7 +267,7 @@ ExperimentVisualizer >> measurements: aCollectionOfMeasurementsRows [
 	measurementsKeys := aCollectionOfMeasurementsRows first keys
 ]
 
-{ #category : #precision }
+{ #category : #'bar graph' }
 ExperimentVisualizer >> openBarGraph: aString withData: dataPoints withTrueNegatives: aBoolean [
 	| b |
 	b := RTGrapher new.
@@ -271,7 +287,7 @@ ExperimentVisualizer >> openBarGraph: aString withData: dataPoints withTrueNegat
 	^ b
 ]
 
-{ #category : #precision }
+{ #category : #'bar graph' }
 ExperimentVisualizer >> openTNBarGraph: aString withData: dataPoints [
 	| b |
 	b := RTGrapher new.
@@ -287,59 +303,46 @@ ExperimentVisualizer >> openTNBarGraph: aString withData: dataPoints [
 	^ b
 ]
 
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartAveragePrecisionOfAnalyses: aSymbolsCollection definition: aString [
-	| pie objects |
-	objects := self averagePrecisionOfAnalyses: aSymbolsCollection.
-	pie := self createPieChart: objects.
-	self pieChartLegendIn: pie view.
-	pie view
-		@ RTZoomableView;
-		openTitled: 'Average precision for ' , aString
-]
-
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartLegendIn: aView [
-	| legend |
-	legend := RTLegendBuilder new.
-	legend view: aView.
-	self precisionSymbols
-		do: [ :symbol | 
-			| aColor |
-			aColor := self precisionColors at: symbol.
-			legend addColor: aColor text: (self symbolToString: symbol) ].
-	legend build.
-]
-
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartPrecisionOfAnalyses: aSymbolsCollection [
-	aSymbolsCollection
-		do: [ :symbol | self pieChartPrecisionOfAnalysis: symbol ]
-]
-
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartPrecisionOfAnalysis: anAnalysisSymbol [
-	| pie objects |
-	objects := self precisionOfAnalysis: anAnalysisSymbol.
-	pie := self createPieChart: objects.
-	self pieChartLegendIn: pie view.
-	pie view
-		@ RTZoomableView;
-		openTitled: 'Precision for ' , (self symbolToString: anAnalysisSymbol)
-]
-
-{ #category : #'average PieChart' }
-ExperimentVisualizer >> pieChartTotalAveragePrecision [
+{ #category : #'pie chart' }
+ExperimentVisualizer >> pieChartAverageOfAllAnalyses [
 	| pie objects |
 	objects := self averagePrecision.
 	pie := self createPieChart: objects.
-	self pieChartLegendIn: pie view.
+	self createPrecisionLegendIn: pie view.
 	pie view
 		@ RTZoomableView;
 		openTitled: 'Average precision for all tested Strategies'
 ]
 
-{ #category : #'average PieChart' }
+{ #category : #'pie chart' }
+ExperimentVisualizer >> pieChartAverageOfAnalyses: aSymbolsCollection definition: aString [
+	| pie objects |
+	objects := self averagePrecisionOfAnalyses: aSymbolsCollection.
+	pie := self createPieChart: objects.
+	self createPrecisionLegendIn: pie view.
+	pie view
+		@ RTZoomableView;
+		openTitled: 'Average precision for ' , aString
+]
+
+{ #category : #'pie chart' }
+ExperimentVisualizer >> pieChartOfAnalysis: anAnalysisSymbol [
+	| pie objects |
+	objects := self precisionOfAnalysis: anAnalysisSymbol.
+	pie := self createPieChart: objects.
+	self createPrecisionLegendIn: pie view.
+	pie view
+		@ RTZoomableView;
+		openTitled: 'Precision for ' , (self symbolToString: anAnalysisSymbol)
+]
+
+{ #category : #'pie chart' }
+ExperimentVisualizer >> pieChartsOfAnalyses: aSymbolsCollection [
+	aSymbolsCollection
+		do: [ :symbol | self pieChartOfAnalysis: symbol ]
+]
+
+{ #category : #'pie chart' }
 ExperimentVisualizer >> pieSliceLegendBlock: objects [
 	^ [ :key | 
 	| nbOfTests |
@@ -375,7 +378,7 @@ ExperimentVisualizer >> precisionColors [
 			Color red}
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> precisionOfAnalysis: anAnalysisSymbol [
 	^ OrderedDictionary
 		newFromKeys: self precisionSymbols
@@ -387,7 +390,7 @@ ExperimentVisualizer >> precisionSymbols [
 	^ #(#truePositives #trueNegatives #falsePositives #falseNegatives)
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> resultsOfAnalyses: aSymbolsCollection [
 	^ Dictionary
 		newFrom:
@@ -395,13 +398,70 @@ ExperimentVisualizer >> resultsOfAnalyses: aSymbolsCollection [
 				collect: [ :symbol | self resultsOfAnalysis: symbol ])
 ]
 
-{ #category : #'results analysis' }
+{ #category : #private }
 ExperimentVisualizer >> resultsOfAnalysis: anAnalysisSymbol [
 	| keys |
 	keys := self precisionSymbols
 		collect: [ :symbol | symbol , anAnalysisSymbol capitalized ].
 	^ (self symbolToString: anAnalysisSymbol)
 		-> (keys collect: [ :symbol | self totalAtKey: symbol ])
+]
+
+{ #category : #'bar graph' }
+ExperimentVisualizer >> resultsOfAnalysis: aSymbol withTrueNegatives: aBoolean [
+	| precisions grapher |
+	precisions := #(#truePositives #falsePositives #falseNegatives #trueNegatives)
+		collect: [ :keyword | keyword , aSymbol capitalized ].
+	grapher := self
+		openBarGraph: (self symbolToString: aSymbol)
+		withData: (self makeDataPointsWithColumns: precisions)
+		withTrueNegatives: aBoolean.
+	grapher title: (self symbolToString: aSymbol) , ' SmartTest analysis'.
+	grapher build.
+	grapher view
+		@ RTZoomableView;
+		inspect
+]
+
+{ #category : #'stack bar plot' }
+ExperimentVisualizer >> stackBarPlotOfAllAnalyses [
+	self stackBarPlotOfAnalyses: analysesSymbols definition: 'Precision of all tested strategies'
+]
+
+{ #category : #'stack bar plot' }
+ExperimentVisualizer >> stackBarPlotOfAnalyses: aSymbolsCollection definition: aString [
+	| b |
+	b := RTStackBarPlot new.
+	b colorPalette colors: self precisionColors values.
+	(self resultsOfAnalyses: aSymbolsCollection)
+		keysAndValuesDo: [ :key :value | b add: value title: key ].
+	b interaction
+		popupText: [ :assoc | 
+			assoc key asString , ' '
+				, (self symbolToString: (self precisionSymbols at: assoc value)) ].
+	b build.
+	b view
+		@ RTZoomableView;
+		openTitled: aString
+]
+
+{ #category : #'stack bar plot' }
+ExperimentVisualizer >> stackBarPlotOfAnalysis: anAnalysisSymbol [
+	| b result |
+	b := RTStackBarPlot new.
+	b colorPalette colors: self precisionColors values.
+	result := self resultsOfAnalysis: anAnalysisSymbol.
+	b add: result value title: result key.
+	b interaction
+		popupText: [ :assoc | 
+			assoc key asString , ' '
+				, (self symbolToString: (self precisionSymbols at: assoc value)) ].
+	b build.
+	b view
+		@ RTZoomableView;
+		openTitled:
+			'Results of ' , (self symbolToString: anAnalysisSymbol)
+				, ' strategy'
 ]
 
 { #category : #utility }
@@ -467,6 +527,7 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 	b := RTGrapher new.
 	#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified #testLinesAdded #testLinesDeleted #testLinesModified)
 		do: [ :symbol | b add: (self createBarChart: symbol) ].
+		b interaction popup.
 	b axisX
 		title: 'System Evolution';
 		noDecimal;
@@ -475,6 +536,7 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 		title: 'Code Churn';
 		noDecimal.
 	b legend right.
+	b build.
 	b view
 		@ RTZoomableView;
 		openTitled: 'Code Churn'
@@ -499,54 +561,4 @@ ExperimentVisualizer >> visualiseCodeChurnLineChart [
 	b view
 		@ RTZoomableView;
 		openTitled: 'Code Churn'
-]
-
-{ #category : #'execution time' }
-ExperimentVisualizer >> visualiseTestExecutionTime [
-	| b |
-	b := RTGrapher new.
-	#(#totalTestTime #reducedTestTimeStatic #reducedTestTimeDynamic)
-		do: [ :symbol | b add: (self createBarChart: symbol) ].
-	b axisX
-		title: 'System Evolution';
-		noDecimal;
-		noTick.
-	b axisY
-		title: 'Test Execution Time';
-		noDecimal.
-	b legend right.
-	b open
-]
-
-{ #category : #precision }
-ExperimentVisualizer >> visualizePrecisionForFinder: aSymbol withTrueNegatives: aBoolean [
-	| precisions grapher |
-	precisions := #(#truePositives #falsePositives #falseNegatives #trueNegatives)
-		collect: [ :keyword | keyword , aSymbol capitalized ].
-	grapher := self
-		openBarGraph: (self symbolToString: aSymbol)
-		withData: (self makeDataPointsWithColumns: precisions)
-		withTrueNegatives: aBoolean.
-	grapher title: (self symbolToString: aSymbol) , ' SmartTest analysis'.
-	grapher build.
-	grapher view
-		@ RTZoomableView;
-		inspect
-]
-
-{ #category : #'stack bar plot' }
-ExperimentVisualizer >> visualizeResultsOfAnalyses: aSymbolsCollection [
-	| b |
-	b := RTStackBarPlot new.
-	b colorPalette colors: self precisionColors values.
-	(self resultsOfAnalyses: aSymbolsCollection)
-		keysAndValuesDo: [ :key :value | b add: value title: key ].
-	b interaction
-		popupText: [ :assoc | 
-			assoc key asString , ' '
-				, (self symbolToString: (self precisionSymbols at: assoc value)) ].
-	b build.
-	b view
-		@ RTZoomableView;
-		openTitled: 'Results of SmartTest evaluations'
 ]

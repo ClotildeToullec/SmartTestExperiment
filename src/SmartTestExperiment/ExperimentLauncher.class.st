@@ -1136,7 +1136,7 @@ ExperimentLauncher >> terminate [
 		measurements: measurements rows;
 		analysesSymbols: smTFinders keys.
 	smTFinders
-		keysDo: [ :key | visualizer visualizePrecisionForFinder: key withTrueNegatives: false ].
+		keysDo: [ :key | visualizer resultsOfAnalysis: key withTrueNegatives: false ].
 	visualizer visualiseCodeChurnBarChart.
 	self visualizeResults
 ]
@@ -1177,7 +1177,7 @@ ExperimentLauncher >> visualizeFalseResults [
 
 { #category : #visualization }
 ExperimentLauncher >> visualizeResults [
-	visualizer visualizeResultsOfAnalyses: smTFinders keys
+	visualizer stackBarPlotOfAllAnalyses
 ]
 
 { #category : #visualization }

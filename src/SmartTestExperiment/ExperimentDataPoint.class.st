@@ -9,6 +9,7 @@ Class {
 	#instVars : [
 		'id',
 		'change',
+		'changeInTest',
 		'entity',
 		'tp',
 		'fp',
@@ -26,6 +27,16 @@ ExperimentDataPoint >> change [
 { #category : #accessing }
 ExperimentDataPoint >> change: anObject [
 	change := anObject
+]
+
+{ #category : #accessing }
+ExperimentDataPoint >> changeInTest [
+	^ changeInTest
+]
+
+{ #category : #accessing }
+ExperimentDataPoint >> changeInTest: anObject [
+	changeInTest := anObject
 ]
 
 { #category : #accessing }
@@ -79,7 +90,16 @@ ExperimentDataPoint >> pieChart [
 			(#falsePositive -> self falsePositive).
 			(#falseNegative -> self falseNegative)}.
 	pie := visualizer createPieChart: objects.
-	legend := visualizer pieChartLegendIn: pie view.
+	legend := visualizer createPrecisionLegendIn: pie view.
+	legend := RTLegendBuilder new.
+	legend view: pie view.
+	legend
+		addText:
+			(changeInTest
+				ifTrue: [ 'Test ' ]
+				ifFalse: [ 'Source ' ]) , (visualizer symbolToString: change);
+		top;
+		build.
 	pie view @ RTZoomableView.
 	pie build.
 	^ pie
