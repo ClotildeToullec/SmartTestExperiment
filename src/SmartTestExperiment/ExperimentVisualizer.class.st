@@ -527,7 +527,7 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 	b := RTGrapher new.
 	#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified #testLinesAdded #testLinesDeleted #testLinesModified)
 		do: [ :symbol | b add: (self createBarChart: symbol) ].
-		b interaction popup.
+	b interaction popup.
 	b axisX
 		title: 'System Evolution';
 		noDecimal;
@@ -539,7 +539,7 @@ ExperimentVisualizer >> visualiseCodeChurnBarChart [
 	b build.
 	b view
 		@ RTZoomableView;
-		openTitled: 'Code Churn'
+		openInWindowSized: 900 @ 500 titled: 'Code Churn'
 ]
 
 { #category : #'code churn' }

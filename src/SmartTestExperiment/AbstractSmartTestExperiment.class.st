@@ -124,37 +124,25 @@ AbstractSmartTestExperiment class >> ungenericFinders [
 	| smTFinders |
 	smTFinders := OrderedDictionary new.
 	smTFinders
-		at: #staticPackage
+		at: #static
 			put:
 			(SmartFinder new
 				filter: SmTDefaultPackagesFilter new;
 				cacheStrategy: SmTNoCacheStrategy new;
 				smtFinder: SmTSenderTestFinderStrategy new);
-		at: #staticClassRefs
-			put:
-			(SmartFinder new
-				filter: SmTDefaultClassPackagesFilter new;
-				cacheStrategy: SmTNoCacheStrategy new;
-				smtFinder: SmTSenderTestFinderStrategy new);
-"		at: #staticNoFilter
-			put:
-			(SmartFinder new
-				filter: SmTNoFilter new;
-				cacheStrategy: SmTNoCacheStrategy new;
-				smtFinder: SmTSenderTestFinderStrategy new);"
-		at: #dynamicBasicCache
+		at: #dynamicAlwaysResetCache
 			put:
 			(SmartFinder new
 				filter: SmTDefaultClassPackagesFilter new;
 				cacheStrategy: SmTBasicCacheStrategy new;
 				smtFinder: SmTTestCoverageTestFinderStrategy new);
-		at: #fiveChangesCache
+		at: #dynamicResetEveryFiveChanges
 			put:
 			(SmartFinder new
 				filter: SmTDefaultClassPackagesFilter new;
 				cacheStrategy: SmTBasicCacheResetEvery5ChangesStrategy new;
 				smtFinder: SmTTestCoverageTestFinderStrategy new);
-		at: #dynamicNeverReset
+		at: #dynamicNeverResetCache
 			put:
 			(SmartFinder new
 				filter: SmTDefaultClassPackagesFilter new;

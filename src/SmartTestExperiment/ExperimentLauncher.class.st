@@ -241,6 +241,12 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 	^ self lastRun
 ]
 
+{ #category : #LANSimulationExp }
+ExperimentLauncher class >> reopenLastResults [
+	<script>
+	self allInstances last visualizeResults
+]
+
 { #category : #'instance creation' }
 ExperimentLauncher class >> resetLastRun [
 	"self resetLastRun"
@@ -255,6 +261,12 @@ ExperimentLauncher class >> resultsFormat [
 { #category : #private }
 ExperimentLauncher class >> rootDir [
 	^ '/home/clotilde/Documents/Stage/Projets/'
+]
+
+{ #category : #LANSimulationExp }
+ExperimentLauncher class >> runEntireLANSimulationExp [
+	<script>
+	self runScenario: 'LANSimulation' withFinders: self ungenericFinders
 ]
 
 { #category : #'generic experiment' }
@@ -303,6 +315,28 @@ ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName withFinders
 		ombuFiles: (1 to: files size)
 		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
 		withFinders: smartFindersDictionary
+]
+
+{ #category : #LANSimulationExp }
+ExperimentLauncher class >> runLANSimulationExpOnSecondFile [
+	<script>
+	| el ombFile logFile |
+	EpMonitor current disable.
+	self resetLastRun.
+	1 to: 2 do: [ :i | 
+		ombFile := self ombuFileName: 'LANSimulation' number: i.
+		logFile := self logFileName: 'LANSimulation' number: i.
+		el := self
+			onOmbuFiles: {ombFile}
+			logFileName: logFile
+			withPackages: {'LANSimulation'}
+			withFinders: self ungenericFinders.
+		el
+			prepare: i = 1;
+			run: i = 2;
+			terminate: i = 2 ].
+	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
 ]
 
 { #category : #'generic experiment' }
@@ -451,65 +485,6 @@ ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 	]
 ]
 
-{ #category : #LANEx }
-ExperimentLauncher class >> runTestScenarioLanEx [
-	<script>
-	self runScenario: 'LANSimulation'
-]
-
-{ #category : #LANEx }
-ExperimentLauncher class >> runTestScenarioLanExQuick [
-	"Used only to test non-regression while refactoring"
-
-	<script>
-	| el ombFile logFile |
-	EpMonitor current disable.
-	self resetLastRun.
-	ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_01.ombu'.
-	logFile := 'LANSimulation1.log'.
-	el := self
-		onOmbuFiles: {ombFile}
-		logFileName: logFile
-		withPackages: {'LANSimulation'}
-		withFinders: self defaultFinders.
-	el
-		prepare: true;
-		run;
-		terminate.
-	SmalltalkImage current snapshot: true andQuit: false.
-	EpMonitor current enable
-]
-
-{ #category : #LANEx }
-ExperimentLauncher class >> runTestScenarioLanExQuickReflectivity [
-	| el ombFile logFile |
-	EpMonitor current disable.
-	self resetLastRun.
-	ombFile := 'LANSimulationEx/ombu-sessions/LANSimulation_01.ombu'.
-	logFile := 'LANSimulation1.log'.
-	el := self
-		onOmbuFiles: {ombFile}
-		logFileName: logFile
-		withPackages: {'LANSimulation'}
-		withFinders: self reflectivityFinder.
-	el
-		prepare: true;
-		run;
-		terminate.
-	SmalltalkImage current snapshot: true andQuit: false.
-	EpMonitor current enable
-]
-
-{ #category : #LANEx }
-ExperimentLauncher class >> runTestScenarioLanExUngeneric [
-	"self runTestScenarioLanEx"
-
-	<script>
-	self
-		runScenario: 'LANSimulation'
-		withFinders: self ungenericFinders
-]
-
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioMooseQuery [
 	"self runTestScenarioMooseQuery"
@@ -610,6 +585,12 @@ ExperimentLauncher class >> saveIntermediately [
 	<script>
 	self intermediateSave: self lastRun.
 	^intermediateSave 
+]
+
+{ #category : #LANSimulationExp }
+ExperimentLauncher class >> showResultsAsPieCharts [
+	<script>
+	self allInstances last visualizePieChartResults
 ]
 
 { #category : #utilities }
@@ -939,6 +920,16 @@ ExperimentLauncher >> keys [
 	^ smTFinders keys
 ]
 
+{ #category : #'no analysis' }
+ExperimentLauncher >> loadAndIncrement: bar [
+	changeList
+		do: [ :anOmEntry | 
+			currentChange := anOmEntry.
+			self changeShouldBeApplied
+				ifTrue: [ self processChange ].
+			bar increment ]
+]
+
 { #category : #logging }
 ExperimentLauncher >> logMeasurementsPrecision [
 	| smarttestAdvice testsInOracle allTests |
@@ -1011,6 +1002,17 @@ ExperimentLauncher >> noSmartTestAnalysis [
 		ifTrue: [ self processChange ]
 ]
 
+{ #category : #'no analysis' }
+ExperimentLauncher >> onlyApplyChanges [
+	| barLabel |
+	barLabel := 'SmartTest Experiment: Loading project'.
+	UIManager default
+		displayProgress: barLabel
+		from: 1
+		to: changeList size
+		during: [ :bar | self loadAndIncrement: bar ]
+]
+
 { #category : #accessing }
 ExperimentLauncher >> packages [
 	^ packages
@@ -1077,6 +1079,13 @@ ExperimentLauncher >> run [
 	measurements removeLastRowIfEmpty
 ]
 
+{ #category : #'actions-public' }
+ExperimentLauncher >> run: aBoolean [
+	aBoolean
+		ifTrue: [ self run ]
+		ifFalse: [ self onlyApplyChanges ]
+]
+
 { #category : #analysis }
 ExperimentLauncher >> runAnalysisThenChange [
 	self manageBuildCache.
@@ -1129,16 +1138,20 @@ ExperimentLauncher >> smarttestInterventionNeeded [
 
 { #category : #'actions-public' }
 ExperimentLauncher >> terminate [
-	"logger closelog."
-
+	logger closelog.
 	visualizer := ExperimentVisualizer new.
 	visualizer
 		measurements: measurements rows;
 		analysesSymbols: smTFinders keys.
 	smTFinders
-		keysDo: [ :key | visualizer resultsOfAnalysis: key withTrueNegatives: false ].
-	visualizer visualiseCodeChurnBarChart.
-	self visualizeResults
+		keysDo: [ :key | visualizer resultsOfAnalysis: key withTrueNegatives: true ].
+	visualizer visualiseCodeChurnBarChart
+]
+
+{ #category : #'actions-public' }
+ExperimentLauncher >> terminate: aBoolean [
+	aBoolean
+		ifTrue: [ self terminate ]
 ]
 
 { #category : #accessing }
@@ -1176,8 +1189,15 @@ ExperimentLauncher >> visualizeFalseResults [
 ]
 
 { #category : #visualization }
+ExperimentLauncher >> visualizePieChartResults [
+	visualizer pieChartsOfAnalyses: smTFinders keys
+]
+
+{ #category : #visualization }
 ExperimentLauncher >> visualizeResults [
-	visualizer stackBarPlotOfAllAnalyses
+	smTFinders
+		keysDo: [ :key | visualizer resultsOfAnalysis: key withTrueNegatives: true ].
+	visualizer visualiseCodeChurnBarChart
 ]
 
 { #category : #visualization }
