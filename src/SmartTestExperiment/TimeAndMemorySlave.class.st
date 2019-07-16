@@ -81,8 +81,8 @@ TimeAndMemorySlave >> manageBuildCache [
 		valuesDo: [ :finder | 
 			timeToBuildCaches
 				add:
-					[ finder resetCache.
-					finder buildCacheFromTestSuite: ts ] timeToRunInMicroSeconds ]
+					[ finder resetCacheUsing: ts forChange: currentChange ]
+						timeToRunInMicroSeconds ]
 ]
 
 { #category : #'tests stats' }

@@ -228,8 +228,7 @@ AbstractSmartTestExperiment >> manageBuildCache [
 	ts addTests: collectionOfTestSuites.
 	smTFinders
 		valuesDo: [ :finder | 
-			finder resetCache.
-			finder buildCacheFromTestSuite: ts ].
+			finder resetCacheUsing: ts forChange: currentChange ].
 	oracleFinder
 		cache: (SmTBasicCacheStrategy new cache: Dictionary new);
 		buildCacheFromTestSuite: ts
