@@ -41,11 +41,8 @@ ExperimentVisualizer >> addTo: aGrapher decorator: dataPoints [
 			x := x + 1.
 			hasReset := point cacheReset.
 			hasReset = 1
-				ifTrue: [ aGrapher
-						addDecorator:
-							(RTMarkerOnX new
-								value: x;
-								markerColor: Color gray) ] ]
+				ifTrue:
+					[ aGrapher addDecorator: (ELGraphArrow new value: x) ] ]
 ]
 
 { #category : #accessing }
