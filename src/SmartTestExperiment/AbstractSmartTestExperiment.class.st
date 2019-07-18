@@ -284,23 +284,17 @@ AbstractSmartTestExperiment >> smTResults: anObject [
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> smarttestInterventionNeeded: aChange [
+AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
 	"Answer whether currentChange corresponds to a change which requires a Smarttest intervention
 	 and this is when:
 	 - the change is on a method
 	 - but it does not _introduce_ (so not a methodRemoval) a self halt
 	 - the change is not on a widely spread Pharo method (ex: #initialize) because it would end up looking for all methods in the image
 		"
+
 	| epChange |
 	epChange := aChange content.
-	(epChange isEpMethodChange)
-		ifFalse: [ ^ false ].
-
-	(epChange class = EpMethodRemoval)
-		ifTrue: [  ^ (self isSystemWideMethod: epChange) not ].
-
-	(epChange newSourceCode includesSubstring: 'self halt')
-		ifTrue: [ ^ false ].
-
-	^ (self isSystemWideMethod: epChange) not
+	^ epChange isEpMethodChange
+		and: [ epChange isIntroducingAHalt not
+				and: [ (self isSystemWideMethod: epChange) not ] ]
 ]
