@@ -56,6 +56,17 @@ ExperimentLauncherLogger >> logCSVRow: values [
 				nextPutAll: value asString ]
 ]
 
+{ #category : #'results logging' }
+ExperimentLauncherLogger >> logCacheResetForFinder: aSymbol [
+	self
+		log: 'Cache Reset: ' , (self symbolToString: aSymbol)
+		crBefore: true
+		indentation: 1.
+	measurements
+		incrementResult: #cacheReset , aSymbol capitalized
+		withAmount: 1
+]
+
 { #category : #logging }
 ExperimentLauncherLogger >> logCacheSize: anInt [
 	self log: 'smarttestResults cacheSize = ' , anInt printString, ' kilobytes' crBefore: true indentation: 2

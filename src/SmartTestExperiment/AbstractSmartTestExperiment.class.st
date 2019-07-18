@@ -142,6 +142,12 @@ AbstractSmartTestExperiment class >> ungenericFinders [
 				filter: SmTDefaultClassPackagesFilter new;
 				cacheStrategy: SmTBasicCacheResetEvery5ChangesStrategy new;
 				smtFinder: SmTTestCoverageTestFinderStrategy new);
+"		at: #dynamicResetEveryCommit
+			put:
+			(SmartFinder new
+				filter: SmTDefaultClassPackagesFilter new;
+				cacheStrategy: SmTBasicCacheResetEveryCommitStrategy new;
+				smtFinder: SmTTestCoverageTestFinderStrategy new);"
 		at: #dynamicNeverResetCache
 			put:
 			(SmartFinder new

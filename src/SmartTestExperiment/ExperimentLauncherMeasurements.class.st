@@ -52,7 +52,8 @@ ExperimentLauncherMeasurements class >> new: aFindersSymbolCollection [
 					{(#truePositives , symbol capitalized).
 					(#falsePositives , symbol capitalized).
 					(#falseNegatives , symbol capitalized).
-					(#trueNegatives , symbol capitalized)} ].
+					(#trueNegatives , symbol capitalized).
+					(#cacheReset , symbol capitalized)} ].
 	names
 		addAll:
 			{#change . #changeType . #sourceLinesAdded . #sourceLinesDeleted.
@@ -74,15 +75,6 @@ ExperimentLauncherMeasurements >> addCodeChange: anAmount inTest: aBoolean atKey
 				ifTrue: [ #test ]
 				ifFalse: [ #source ]) , aSymbol capitalized
 		withAmount: anAmount
-]
-
-{ #category : #incrementation }
-ExperimentLauncherMeasurements >> addResult: anAmount atKey: aSymbol [
-	| row |
-	"Increment current row"
-	row := rows last.
-	row at: aSymbol put: (row at: aSymbol) + anAmount.
-	^ row at: aSymbol
 ]
 
 { #category : #accessing }
