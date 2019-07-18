@@ -31,6 +31,23 @@ ExperimentVisualizer >> addTo: aGrapher barChart: dataPoints for: barSymbol [
 	aGrapher add: ds
 ]
 
+{ #category : #'bar graph' }
+ExperimentVisualizer >> addTo: aGrapher decorator: dataPoints [
+	| x |
+	x := 0.
+	dataPoints
+		do: [ :point | 
+			| hasReset |
+			x := x + 1.
+			hasReset := point cacheReset.
+			hasReset = 1
+				ifTrue: [ aGrapher
+						addDecorator:
+							(RTMarkerOnX new
+								value: x;
+								markerColor: Color gray) ] ]
+]
+
 { #category : #accessing }
 ExperimentVisualizer >> analysesSymbols: anObject [
 	analysesSymbols := anObject
@@ -243,7 +260,7 @@ ExperimentVisualizer >> legendIn: graph for: anAnalysesSymbolsCollection [
 
 { #category : #'bar graph' }
 ExperimentVisualizer >> makeDataPointsWithColumns: columns [
-	"columns is a collection of { tp-column , fp-column , fn-column , tn-column }"
+	"columns is a collection of { tp-column , fp-column , fn-column , tn-column , cacheReset}"
 
 	^ measurements
 		collect: [ :row | 
@@ -255,6 +272,7 @@ ExperimentVisualizer >> makeDataPointsWithColumns: columns [
 				falseNegative: (row at: columns third);
 				falsePositive: (row at: columns second);
 				truePositive: (row at: columns first);
+				cacheReset: (row at: columns fifth);
 				changeInTest:
 					(#(#testLinesAdded #testLinesDeleted #testLinesModified)
 						anySatisfy: [ :symbol | (row at: symbol) > 0 ]);
@@ -268,7 +286,7 @@ ExperimentVisualizer >> measurements: aCollectionOfMeasurementsRows [
 ]
 
 { #category : #'bar graph' }
-ExperimentVisualizer >> openBarGraph: aString withData: dataPoints withTrueNegatives: aBoolean [
+ExperimentVisualizer >> openBarGraph: aString withData: dataPoints withTrueNegatives: aBoolean showCacheReset: anotherBoolean [
 	| b |
 	b := RTGrapher new.
 	aBoolean
@@ -276,6 +294,8 @@ ExperimentVisualizer >> openBarGraph: aString withData: dataPoints withTrueNegat
 	self addTo: b barChart: dataPoints for: #falseNegatives.
 	self addTo: b barChart: dataPoints for: #falsePositives.
 	self addTo: b barChart: dataPoints for: #truePositives.
+	anotherBoolean
+		ifTrue: [ self addTo: b decorator: dataPoints ].
 	b axisX
 		title: 'System Evolution';
 		noDecimal;
@@ -398,24 +418,33 @@ ExperimentVisualizer >> resultsOfAnalyses: aSymbolsCollection [
 				collect: [ :symbol | self resultsOfAnalysis: symbol ])
 ]
 
-{ #category : #private }
-ExperimentVisualizer >> resultsOfAnalysis: anAnalysisSymbol [
-	| keys |
-	keys := self precisionSymbols
-		collect: [ :symbol | symbol , anAnalysisSymbol capitalized ].
-	^ (self symbolToString: anAnalysisSymbol)
-		-> (keys collect: [ :symbol | self totalAtKey: symbol ])
-]
-
 { #category : #'bar graph' }
-ExperimentVisualizer >> resultsOfAnalysis: aSymbol withTrueNegatives: aBoolean [
-	| precisions grapher |
-	precisions := #(#truePositives #falsePositives #falseNegatives #trueNegatives)
+ExperimentVisualizer >> resultsOfAnalysis: aSymbol [
+	| columnNames grapher |
+	columnNames := #(#truePositives #falsePositives #falseNegatives #trueNegatives #cacheReset)
 		collect: [ :keyword | keyword , aSymbol capitalized ].
 	grapher := self
 		openBarGraph: (self symbolToString: aSymbol)
-		withData: (self makeDataPointsWithColumns: precisions)
-		withTrueNegatives: aBoolean.
+		withData: (self makeDataPointsWithColumns: columnNames)
+		withTrueNegatives: true
+		showCacheReset: false.
+	grapher title: (self symbolToString: aSymbol) , ' SmartTest analysis'.
+	grapher build.
+	grapher view
+		@ RTZoomableView;
+		inspect
+]
+
+{ #category : #'bar graph' }
+ExperimentVisualizer >> resultsOfAnalysis: aSymbol withTrueNegatives: aBoolean showCacheReset: anotherBoolean [
+	| columnNames grapher |
+	columnNames := #(#truePositives #falsePositives #falseNegatives #trueNegatives #cacheReset)
+		collect: [ :keyword | keyword , aSymbol capitalized ].
+	grapher := self
+		openBarGraph: (self symbolToString: aSymbol)
+		withData: (self makeDataPointsWithColumns: columnNames)
+		withTrueNegatives: aBoolean
+		showCacheReset: anotherBoolean.
 	grapher title: (self symbolToString: aSymbol) , ' SmartTest analysis'.
 	grapher build.
 	grapher view

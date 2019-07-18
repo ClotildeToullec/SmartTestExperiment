@@ -14,10 +14,21 @@ Class {
 		'tp',
 		'fp',
 		'tn',
-		'fn'
+		'fn',
+		'cacheReset'
 	],
 	#category : #'SmartTestExperiment-reporting'
 }
+
+{ #category : #accessing }
+ExperimentDataPoint >> cacheReset [
+	^ cacheReset
+]
+
+{ #category : #accessing }
+ExperimentDataPoint >> cacheReset: anObject [
+	cacheReset := anObject
+]
 
 { #category : #accessing }
 ExperimentDataPoint >> change [

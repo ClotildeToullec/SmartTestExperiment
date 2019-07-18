@@ -934,6 +934,11 @@ ExperimentLauncher >> loadAndIncrement: bar [
 ]
 
 { #category : #logging }
+ExperimentLauncher >> logCacheResetForFinder: aSymbol [
+	logger logCacheResetForFinder: aSymbol
+]
+
+{ #category : #logging }
 ExperimentLauncher >> logMeasurementsPrecision [
 	| smarttestAdvice testsInOracle allTests |
 	allTests := self allTests.
@@ -978,6 +983,25 @@ ExperimentLauncher >> logTimeSavings [
 ExperimentLauncher >> manageAnalysis [
 	self performAnalysis.
 	self logMeasurementsPrecision
+]
+
+{ #category : #analysis }
+ExperimentLauncher >> manageBuildCache [
+	| ts |
+	self createTestcases.
+	ts := TestSuite new.
+	ts addTests: collectionOfTestSuites.
+	smTFinders
+		keysAndValuesDo: [ :key :finder | 
+			| previousCache |
+			previousCache := finder currentCache copy.
+			finder emptyCache.
+			finder currentCache = previousCache
+				ifFalse: [ self logCacheResetForFinder: key ].
+			finder currentCache ifEmpty: [ finder buildCacheFromTestSuite: ts ] ].
+	oracleFinder
+		cache: (SmTBasicCacheStrategy new cache: Dictionary new);
+		buildCacheFromTestSuite: ts
 ]
 
 { #category : #'oracle creation' }
@@ -1141,8 +1165,7 @@ ExperimentLauncher >> terminate [
 	visualizer
 		measurements: measurements rows;
 		analysesSymbols: smTFinders keys.
-	smTFinders
-		keysDo: [ :key | visualizer resultsOfAnalysis: key withTrueNegatives: true ].
+	self visualizeResults.
 	visualizer visualiseCodeChurnBarChart
 ]
 
@@ -1194,7 +1217,7 @@ ExperimentLauncher >> visualizePieChartResults [
 { #category : #visualization }
 ExperimentLauncher >> visualizeResults [
 	smTFinders
-		keysDo: [ :key | visualizer resultsOfAnalysis: key withTrueNegatives: true ].
+		keysAndValuesDo: [ :key :finder | visualizer resultsOfAnalysis: key withTrueNegatives: true showCacheReset: (finder hasFlexibleCache ) ].
 	visualizer visualiseCodeChurnBarChart
 ]
 
