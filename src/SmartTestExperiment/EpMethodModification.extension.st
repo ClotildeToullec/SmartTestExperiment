@@ -6,3 +6,8 @@ EpMethodModification >> isIntroducingAHalt [
 		anySatisfy:
 			[ :selector | self newSourceCode includesSubstring: selector caseSensitive: false ]
 ]
+
+{ #category : #'*SmartTestExperiment' }
+EpMethodModification >> isProtocolChangePriorToDeletion [
+	^ self newProtocol = 'as yet unclassified'
+]
