@@ -293,6 +293,7 @@ AbstractSmartTestExperiment >> smTResults: anObject [
 AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
 	"Answer whether currentChange corresponds to a change which requires a SmartTest intervention
 	 and this is when:
+	 - the change was not the consequence of a monticello load (so really done by the developper)
 	 - the change is on a method
 	 - but it does not _introduce_ (so not a methodRemoval) a halt
 	 - th change is not just a change of protocol to 'as yet unclassified'. This occures when a protocol is deleted and so, all the methods in it.
@@ -301,8 +302,9 @@ AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
 
 	| epChange |
 	epChange := aChange content.
-	^ epChange isEpMethodChange
-		and: [ epChange isIntroducingAHalt not
-			and: [ epChange isProtocolChangePriorToDeletion not
-				and: [ (self isSystemWideMethod: epChange) not] ] ]
+	^ aChange wasTriggered not
+		and: [ epChange isEpMethodChange
+				and: [ epChange isIntroducingAHalt not
+						and: [ epChange isProtocolChangePriorToDeletion not
+								and: [ (self isSystemWideMethod: epChange) not ] ] ] ]
 ]

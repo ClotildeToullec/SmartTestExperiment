@@ -493,7 +493,7 @@ ExperimentLauncher class >> runTestScenarioDebuggableASTInterpreterExpFirstFile 
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioFamix [
 	<script>
-	self runScenario: 'Famix'
+	self runKeepingPackagesScenario: 'Famix'
 ]
 
 { #category : #scenarios }
