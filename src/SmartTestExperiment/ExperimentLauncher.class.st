@@ -464,6 +464,39 @@ ExperimentLauncher class >> runTestScenarioDataFrame [
 ]
 
 { #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioDebuggableASTInterpreter [
+	<script>
+	self runKeepingPackagesScenario: 'DebuggableASTInterpreter'
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioDebuggableASTInterpreterExpFirstFile [
+	<script>
+	| el ombFile logFile |
+	EpMonitor current disable.
+	self resetLastRun.
+	ombFile := self ombuFileName: 'DebuggableASTInterpreter' number: 1.
+	logFile := self logFileName: 'DebuggableASTInterpreter' number: 1.
+	el := self
+		onOmbuFiles: {ombFile}
+		logFileName: logFile
+		withPackages: {'DebuggableASTInterpreter'}
+		withFinders: self ungenericFinders.
+	el
+		prepare: false;
+		run;
+		terminate.
+	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioFamix [
+	<script>
+	self runScenario: 'Famix'
+]
+
+{ #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 	"self runTestScenarioForwardChainerEx"
 
@@ -483,6 +516,12 @@ ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 			terminate.
 		SmalltalkImage current snapshot: true andQuit: false.
 	]
+]
+
+{ #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioMeleeSim [
+	<script>
+	self runScenario: 'MeleeSim'
 ]
 
 { #category : #scenarios }

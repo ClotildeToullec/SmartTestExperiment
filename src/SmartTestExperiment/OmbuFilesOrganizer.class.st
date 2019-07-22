@@ -24,14 +24,12 @@ OmbuFilesOrganizer >> dateOfFirstChangeInFile: anOmbuFile [
 
 { #category : #'file info' }
 OmbuFilesOrganizer >> packageNamesInFile: anOmbuFile [
-	^ ((EpLog freshFromFile: anOmbuFile) entries
-		collect: [ :entry | 
-			| event |
-			event := entry content.
-			[ event affectedPackageName ]
-				on: MessageNotUnderstood
-				do: [ nil ] ]
-		thenSelect: [ :name | name isNotNil ]) asSet
+	| allPackages |
+	allPackages := ((EpLog freshFromFile: anOmbuFile) entries
+		select:
+			[ :entry | entry content isCodeChange and: [ entry wasTriggered not ] ]
+		thenCollect: [ :entry | entry content affectedPackageName ]) asSet.
+	^ allPackages reject: [ :name | name isNil or: [ name = 'nil' ] ]
 ]
 
 { #category : #'file info' }
