@@ -292,7 +292,7 @@ ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
 	| files |
 	files := self ombuFilesInProject: aProjectName.
 	self
-		loadProject: 'PolyMath'
+		loadProject: aProjectName
 		branch: 'development'
 		until: (OmbuFilesOrganizer new dateOfFirstChangeInFile: files first).
 	self
