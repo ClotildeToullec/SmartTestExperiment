@@ -290,23 +290,19 @@ AbstractSmartTestExperiment >> smTResults: anObject [
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> smarttestInterventionNeeded: aChange [
-	"Answer whether currentChange corresponds to a change which requires a Smarttest intervention
+AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
+	"Answer whether currentChange corresponds to a change which requires a SmartTest intervention
 	 and this is when:
 	 - the change is on a method
-	 - but it does not _introduce_ (so not a methodRemoval) a self halt
+	 - but it does not _introduce_ (so not a methodRemoval) a halt
+	 - th change is not just a change of protocol to 'as yet unclassified'. This occures when a protocol is deleted and so, all the methods in it.
 	 - the change is not on a widely spread Pharo method (ex: #initialize) because it would end up looking for all methods in the image
 		"
+
 	| epChange |
 	epChange := aChange content.
-	(epChange isEpMethodChange)
-		ifFalse: [ ^ false ].
-
-	(epChange class = EpMethodRemoval)
-		ifTrue: [  ^ (self isSystemWideMethod: epChange) not ].
-
-	(epChange newSourceCode includesSubstring: 'self halt')
-		ifTrue: [ ^ false ].
-
-	^ (self isSystemWideMethod: epChange) not
+	^ epChange isEpMethodChange
+		and: [ epChange isIntroducingAHalt not
+			and: [ epChange isProtocolChangePriorToDeletion not
+				and: [ (self isSystemWideMethod: epChange) not] ] ]
 ]

@@ -157,7 +157,7 @@ TimeAndMemoryMaster >> getRandomActionnableChange: totalEntries [
 		datasetWithPos := self findDatasetAndPos: totalEntries atRandom.
 		dataSet := self datasetFromName: datasetWithPos key.
 		self
-			smarttestInterventionNeeded: (dataSet changeAtPos: datasetWithPos value)
+			smartTestInterventionNeeded: (dataSet changeAtPos: datasetWithPos value)
 	]
 		whileFalse.
 	^ datasetWithPos value

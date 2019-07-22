@@ -1,13 +1,13 @@
-Extension { #name : #EpMethodAddition }
+Extension { #name : #EpMethodModification }
 
 { #category : #'*SmartTestExperiment' }
-EpMethodAddition >> isIntroducingAHalt [
+EpMethodModification >> isIntroducingAHalt [
 	^ (Object allSelectorsInProtocol: #halting)
 		anySatisfy:
 			[ :selector | self newSourceCode includesSubstring: selector caseSensitive: false ]
 ]
 
 { #category : #'*SmartTestExperiment' }
-EpMethodAddition >> newSourceCode [
-	^ self sourceCode
+EpMethodModification >> isProtocolChangePriorToDeletion [
+	^ self newProtocol = 'as yet unclassified'
 ]

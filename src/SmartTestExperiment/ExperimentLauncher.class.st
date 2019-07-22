@@ -851,18 +851,21 @@ ExperimentLauncher >> changeList: aCollectionOfEpCodeChange [
 
 { #category : #private }
 ExperimentLauncher >> changeShouldBeApplied [
-	"apply when
-		- not a protocol removal
-		- not a methodModification, or else it should not introduce a 'self halt'
-		- not a monticello save or load.
+	"Apply when
+		- not a protocol removal (WHY ?)
+		- not a monticello save or load
+		- not a methodModification, or if it is, that does not introduce a Halt.
 	"
+	
 	| epChange |
 	epChange := currentChange content.
-	^ (((epChange class ~= EpProtocolRemoval) and: [
-			(epChange class ~= EpMethodModification) or: [
-				(epChange newSourceCode includesSubstring: 'self halt') not
-			]
-		]) and: [ epChange class ~= EpMonticelloVersionSave  ]) and: [ epChange class ~= EpMonticelloVersionsLoad ]
+	"Exclude protocol removal"
+	^ epChange class ~= EpProtocolRemoval
+	"Exclude Monticello"
+		and: [ epChange isMonticelloVersionsLoad not
+		and: [ epChange isMonticelloVersionSave not
+	"Exclude method modification introducing an halt."
+		and: [ epChange isIntroducingAHalt not ] ] ]
 ]
 
 { #category : #private }
@@ -1166,7 +1169,7 @@ ExperimentLauncher >> runAndIncrement: bar Label: barLabel [
 				logStartOfCodeChange: currentChange content
 				number: self changeNumber.
 			bar label: barLabel , ' change:' , self changeNumber asString.
-			self smarttestInterventionNeeded
+			(self smartTestInterventionNeeded: currentChange)
 				ifTrue: [ self runSmartTestAnalysis ]
 				ifFalse: [ self noSmartTestAnalysis ].
 			bar increment ]
@@ -1192,11 +1195,6 @@ ExperimentLauncher >> runSmartTestAnalysis [
 		ifFalse: [ self runChangeThenAnalysis ].
 	logger logCSVRow: measurements lastRow values.
 	measurements startNewRow
-]
-
-{ #category : #private }
-ExperimentLauncher >> smarttestInterventionNeeded [
-	^ self smarttestInterventionNeeded: currentChange
 ]
 
 { #category : #'actions-public' }

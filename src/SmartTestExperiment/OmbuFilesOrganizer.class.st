@@ -22,6 +22,22 @@ OmbuFilesOrganizer >> dateOfFirstChangeInFile: anOmbuFile [
 	^ (EpLog freshFromFile: anOmbuFile) entries first tagAt: #time
 ]
 
+{ #category : #entries }
+OmbuFilesOrganizer >> entriesInDirectory: aDirectory [
+	^ (self ombuFilesInDirectory: aDirectory)
+		flatCollect: [ :file | self entriesInFile: file ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> entriesInFile: anOmbuFile [
+	^ (EpLog freshFromFile: anOmbuFile) entries
+]
+
+{ #category : #directory }
+OmbuFilesOrganizer >> ombuFilesInDirectory: aDirectory [
+	^ aDirectory files select: [ :file | file extension = 'ombu' ]
+]
+
 { #category : #'file info' }
 OmbuFilesOrganizer >> packageNamesInFile: anOmbuFile [
 	| allPackages |
@@ -32,10 +48,48 @@ OmbuFilesOrganizer >> packageNamesInFile: anOmbuFile [
 	^ allPackages reject: [ :name | name isNil or: [ name = 'nil' ] ]
 ]
 
+{ #category : #directory }
+OmbuFilesOrganizer >> packagesInDirectory: aDirectory [
+	^ self packagesInFiles: (self ombuFilesInDirectory: aDirectory)
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> packagesInEntries: entries [
+	^ (entries
+		collect: [ :entry | 
+			| event |
+			event := entry content.
+			(event isCodeChange and: [ (entry tags includesKey: #trigger) not ])
+				ifTrue: [ event affectedPackageName ]
+				ifFalse: [ nil ] ]
+		thenSelect: [ :name | name isNotNil ]) asSet
+]
+
 { #category : #'file info' }
 OmbuFilesOrganizer >> packagesInFiles: files [
 	^ (files flatCollect: [ :file | self packageNamesInFile: file ])
 		asSet
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> rejectEntries: omEntries tagged: aTag value: anObject [
+	^ omEntries
+		reject:
+			[ :entry | (entry tags includesKey: aTag) and: [ (entry tagAt: aTag) = anObject ] ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> rejectMCLoadedAndTriggeredEntries: omEntries [
+	^ omEntries
+		reject: [ :entry | 
+			(entry tags includesKey: #trigger)
+				or: [ entry content isMonticelloVersionsLoad
+						or: [ entry content isMonticelloVersionSave ] ] ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> rejectTriggeredEntries: omEntries [
+	^ omEntries reject: [ :entry | entry tags includesKey: #trigger ]
 ]
 
 { #category : #rename }
@@ -46,6 +100,62 @@ OmbuFilesOrganizer >> renameFiles: ombuFiles inProject: aProjectName [
 		withIndexDo: [ :file :index | 
 			file
 				renameTo: aProjectName , '_' , index asTwoCharacterString , '.ombu' ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> selectEntries: omEntries contentBlock: aBlock [
+	^ omEntries select: [ :entry | aBlock value: entry content ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> selectEntries: omEntries tagValues: tagsAndValuesDictionary [
+	^ omEntries
+		select: [ :entry | 
+			tagsAndValuesDictionary associations
+				anySatisfy: [ :assoc | entry tags includesAssociation: assoc ] ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> selectEntries: omEntries tagged: aTag value: anObject [
+	^ omEntries
+		select:
+			[ :entry | (entry tags includesKey: aTag) and: [ (entry tagAt: aTag) = anObject ] ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> selectMCLoadedAndTriggeredEntries: omEntries [
+	^ omEntries
+		select: [ :entry | 
+			(entry tags includesKey: #trigger)
+				or: [ entry content isMonticelloVersionsLoad
+						or: [ entry content isMonticelloVersionSave ] ] ]
+]
+
+{ #category : #'file info' }
+OmbuFilesOrganizer >> selectMatchingFiles: ombuFiles contentBlock: anEntryContentBlock [
+	^ ombuFiles
+		select: [ :file | 
+			| entries |
+			entries := self entriesInFile: file.
+			(self selectEntries: entries contentBlock: anEntryContentBlock)
+				isNotEmpty ]
+]
+
+{ #category : #'file info' }
+OmbuFilesOrganizer >> selectMatchingFiles: ombuFiles tagValues: tagsAndValuesDictionary contentBlock: anEntryContentBlock [
+	^ ombuFiles
+		select: [ :file | 
+			| entries |
+			entries := self entriesInFile: file.
+			(self selectEntries: entries tagValues: tagsAndValuesDictionary)
+				isNotEmpty
+				or: [ (self selectEntries: entries contentBlock: anEntryContentBlock)
+						isNotEmpty ] ]
+]
+
+{ #category : #entries }
+OmbuFilesOrganizer >> selectTriggeredEntries: omEntries [
+	^ omEntries select: [ :entry | entry tags includesKey: #trigger ]
 ]
 
 { #category : #rename }
