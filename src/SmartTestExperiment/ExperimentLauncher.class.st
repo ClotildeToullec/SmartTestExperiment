@@ -963,6 +963,13 @@ ExperimentLauncher >> currentMethodAffectedName [
 	^ currentChange content methodAffected fullName
 ]
 
+{ #category : #running }
+ExperimentLauncher >> decideChangeApplication [
+	(self smartTestInterventionNeeded: currentChange)
+		ifTrue: [ self runSmartTestAnalysis ]
+		ifFalse: [ self noSmartTestAnalysis ]
+]
+
 { #category : #exporting }
 ExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
 	measurements exportToCSVStream: stream withHeader: aBoolean
@@ -1188,10 +1195,8 @@ ExperimentLauncher >> runAndIncrement: bar Label: barLabel [
 			logger
 				logStartOfCodeChange: currentChange content
 				number: self changeNumber.
-			bar label: barLabel , ' change:' , self changeNumber asString.
-			(self smartTestInterventionNeeded: currentChange)
-				ifTrue: [ self runSmartTestAnalysis ]
-				ifFalse: [ self noSmartTestAnalysis ].
+			self updateBar: bar label: barLabel.
+			self decideChangeApplication.
 			bar increment ]
 ]
 
@@ -1224,8 +1229,7 @@ ExperimentLauncher >> terminate [
 	visualizer
 		measurements: measurements rows;
 		analysesSymbols: smTFinders keys.
-	self visualizeResults.
-	visualizer visualiseCodeChurnBarChart
+	self visualizeResults
 ]
 
 { #category : #'actions-public' }
@@ -1239,6 +1243,11 @@ ExperimentLauncher >> testsInOracle [
 	^ IdentitySet
 		withAll:
 			(oracle at: currentChange content methodAffected fullName ifAbsent: {})
+]
+
+{ #category : #running }
+ExperimentLauncher >> updateBar: bar label: barLabel [
+	bar label: barLabel , ' change:' , self changeNumber asString
 ]
 
 { #category : #visualization }
