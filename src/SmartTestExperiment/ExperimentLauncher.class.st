@@ -541,7 +541,13 @@ ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioMeleeSim [
 	<script>
-	self runScenario: 'MeleeSim'
+	| files |
+	files := self ombuFilesInProject: 'MeleeSim'.
+	self
+		runScenario: 'MeleeSim'
+		ombuFiles: (1 to: files size)
+		packages: {'MeleeSimulator-Core' . 'MeleeSimulator-Tests'}
+		withFinders: self defaultFinders
 ]
 
 { #category : #scenarios }
