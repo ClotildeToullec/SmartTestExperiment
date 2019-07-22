@@ -462,10 +462,24 @@ ExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
 
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioDataFrame [
-	"Need for Roassal3-Examples for changes 17 & 18 of 2nd pmbu file."
-
 	<script>
-	self runScenario: 'DataFrame'
+	| files packages |
+	"Need for Roassal3-Examples for changes 17 & 18 of 2nd ombu file."
+	Metacello new
+		baseline: 'Roassal3';
+		repository: 'github://ObjectProfile/Roassal3/src';
+		load.
+	
+	"Experiment"
+	files := self ombuFilesInProject: 'DataFrame'.
+	packages := (OmbuFilesOrganizer new packagesInFiles: files) asArray.
+	packages := packages
+		select: [ :pckg | pckg includesSubstring: 'DataFrame' ].
+	self
+		runScenario: 'DataFrame'
+		ombuFiles: (1 to: files size)
+		packages: packages
+		withFinders: self defaultFinders
 ]
 
 { #category : #scenarios }

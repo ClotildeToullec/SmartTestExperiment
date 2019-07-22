@@ -295,7 +295,8 @@ AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
 	 and this is when:
 	 - the change was not the consequence of a monticello load (so really done by the developper)
 	 - the change is on a method
-	 - but it does not _introduce_ (so not a methodRemoval) a halt
+	 - the change is in the project (in one of its packages)
+	 - the change does not introduce (so not a methodRemoval) a halt
 	 - th change is not just a change of protocol to 'as yet unclassified'. This occures when a protocol is deleted and so, all the methods in it.
 	 - the change is not on a widely spread Pharo method (ex: #initialize) because it would end up looking for all methods in the image
 		"
@@ -304,7 +305,8 @@ AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
 	epChange := aChange content.
 	^ aChange wasTriggered not
 		and: [ epChange isEpMethodChange
-				and: [ epChange isIntroducingAHalt not
-						and: [ epChange isProtocolChangePriorToDeletion not
-								and: [ (self isSystemWideMethod: epChange) not ] ] ] ]
+				and: [ (self packages includes: [ epChange affectedPackageName ])
+						and: [ epChange isIntroducingAHalt not
+								and: [ epChange isProtocolChangePriorToDeletion not
+										and: [ (self isSystemWideMethod: epChange) not ] ] ] ] ]
 ]
