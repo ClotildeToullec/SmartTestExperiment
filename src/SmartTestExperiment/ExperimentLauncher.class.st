@@ -151,22 +151,6 @@ ExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: en
 ]
 
 { #category : #private }
-ExperimentLauncher class >> loadProject: aProjectName branch: aBranchName until: aDateAndTime [
-	| repository commits |
-	self
-		flag:
-			'This does not work if the repository does not exist. TODO: automatically create the repository'.
-	repository := IceLibgitRepository allInstances
-		detect: [ :repo | repo name = aProjectName ].
-	commits := (repository branchNamed: aBranchName) commits.
-	commits := commits
-		reject: [ :commit | commit datetime > aDateAndTime ].
-	commits
-		sort: [ :commit1 :commit2 | commit1 datetime < commit2 datetime ].
-	commits last checkout
-]
-
-{ #category : #private }
 ExperimentLauncher class >> logFileName: aProjectName number: i [
 	^ String
 		streamContents: [ :stream | 
@@ -289,16 +273,17 @@ ExperimentLauncher class >> runEntireLANSimulationExp [
 ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
 	"Packages will not be erased before experiment"
 
-	| files |
+	| files organizer |
 	files := self ombuFilesInProject: aProjectName.
-	self
+	organizer := OmbuFilesOrganizer new.
+	organizer
 		loadProject: aProjectName
 		branch: 'development'
-		until: (OmbuFilesOrganizer new dateOfFirstChangeInFile: files first).
+		untilFile: files first.
 	self
 		runKeepingPackagesScenario: aProjectName
 		ombuFiles: (1 to: files size)
-		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
+		packages: (organizer packagesInFiles: files) asArray
 		withFinders: self defaultFinders
 ]
 
@@ -541,13 +526,7 @@ ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioMeleeSim [
 	<script>
-	| files |
-	files := self ombuFilesInProject: 'MeleeSim'.
-	self
-		runScenario: 'MeleeSim'
-		ombuFiles: (1 to: files size)
-		packages: {'MeleeSimulator-Core' . 'MeleeSimulator-Tests'}
-		withFinders: self defaultFinders
+	self runScenario: 'MeleeSim'
 ]
 
 { #category : #scenarios }

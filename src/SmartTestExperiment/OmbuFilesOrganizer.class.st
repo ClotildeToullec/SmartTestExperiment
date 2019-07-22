@@ -33,6 +33,23 @@ OmbuFilesOrganizer >> entriesInFile: anOmbuFile [
 	^ (EpLog freshFromFile: anOmbuFile) entries
 ]
 
+{ #category : #private }
+OmbuFilesOrganizer >> loadProject: aProjectName branch: aBranchName untilFile: anOmbuFile [
+	| repository commits dateOfFirstChange |
+	self
+		flag:
+			'This does not work if the repository does not exist. TODO: automatically create the repository'.
+	repository := IceLibgitRepository allInstances
+		detect: [ :repo | repo name = aProjectName ].
+	dateOfFirstChange := self dateOfFirstChangeInFile: anOmbuFile.
+	commits := (repository branchNamed: aBranchName) commits.
+	commits := commits
+		reject: [ :commit | commit datetime > dateOfFirstChange ].
+	commits
+		sort: [ :commit1 :commit2 | commit1 datetime < commit2 datetime ].
+	commits last checkout
+]
+
 { #category : #directory }
 OmbuFilesOrganizer >> ombuFilesInDirectory: aDirectory [
 	^ aDirectory files select: [ :file | file extension = 'ombu' ]
