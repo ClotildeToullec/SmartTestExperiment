@@ -57,12 +57,12 @@ OmbuFilesOrganizer >> ombuFilesInDirectory: aDirectory [
 
 { #category : #'file info' }
 OmbuFilesOrganizer >> packageNamesInFile: anOmbuFile [
-	| allPackages |
-	allPackages := ((EpLog freshFromFile: anOmbuFile) entries
+	| packages |
+	packages := ((self entriesInFile: anOmbuFile)
 		select:
 			[ :entry | entry content isCodeChange and: [ entry wasTriggered not ] ]
 		thenCollect: [ :entry | entry content affectedPackageName ]) asSet.
-	^ allPackages reject: [ :name | name isNil or: [ name = 'nil' ] ]
+	^ packages reject: [ :name | name isNil or: [ name = 'nil' ] ]
 ]
 
 { #category : #directory }

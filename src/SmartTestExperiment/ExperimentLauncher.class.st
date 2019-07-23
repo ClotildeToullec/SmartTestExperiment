@@ -179,8 +179,12 @@ ExperimentLauncher class >> ombuFileName: aProjectName number: i [
 
 { #category : #private }
 ExperimentLauncher class >> ombuFilesInProject: aProjectName [
-	^ (self rootDir , aProjectName , '/ombu-sessions/') asFileReference
-		files select: [ :file | file extension = 'ombu' ]
+	| files |
+	files := (self rootDir , aProjectName , '/ombu-sessions/')
+		asFileReference files select: [ :file | file extension = 'ombu' ].
+	^ files sorted: [ :file1 :file2 | file1 base < file2 base ]
+	"More rigorous but very slow: 
+		OmbuFilesOrganizer new sortByDate: files"
 ]
 
 { #category : #'instance creation' }
@@ -606,7 +610,17 @@ ExperimentLauncher class >> runTestScenarioPheme: aCollection [
 { #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioPolyMath [
 	<script>
-	self runKeepingPackagesScenario: 'PolyMath'
+	| files packages |
+	files := self ombuFilesInProject: 'PolyMath'.
+	packages := (OmbuFilesOrganizer new packagesInFiles: files) asArray.
+	packages := packages
+		select:
+			[ :pckg | (pckg includesSubstring: 'Math') or: [ pckg beginsWith: 'PM' ] ].
+	self
+		runScenario: 'PolyMath'
+		ombuFiles: (1 to: files size)
+		packages: packages
+		withFinders: self defaultFinders
 ]
 
 { #category : #scenarios }
