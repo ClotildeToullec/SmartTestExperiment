@@ -252,7 +252,7 @@ ExperimentLauncher class >> packagesToAnalyzeInFiles: files [
 	packagesInFiles := OmbuFilesOrganizer new packagesInFiles: files.
 	packagesInSystem := packagesInSystem
 		ifNil: [ RPackageOrganizer default packageNames ].
-	^ packagesInFiles \ packagesInSystem
+	^ (packagesInFiles \ packagesInSystem) asArray
 ]
 
 { #category : #LANSimulationExp }
