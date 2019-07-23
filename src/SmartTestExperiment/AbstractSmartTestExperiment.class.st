@@ -159,8 +159,7 @@ AbstractSmartTestExperiment class >> ungenericFinders [
 
 { #category : #private }
 AbstractSmartTestExperiment >> changeIsConcernedByProject: epChange [
-	^ packages isNotEmpty
-		and: [ self packages includes: [ epChange affectedPackageName ] ]
+	^  self packages includes:  epChange affectedPackageName 
 ]
 
 { #category : #private }
