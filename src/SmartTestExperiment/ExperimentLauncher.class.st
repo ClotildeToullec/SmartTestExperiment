@@ -32,7 +32,8 @@ Class {
 	],
 	#classInstVars : [
 		'lastRuns',
-		'intermediateSave'
+		'intermediateSave',
+		'packagesInSystem'
 	],
 	#category : #'SmartTestExperiment-analysis'
 }
@@ -245,6 +246,15 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 	^ self lastRun
 ]
 
+{ #category : #private }
+ExperimentLauncher class >> packagesToAnalyzeInFiles: files [
+	| packagesInFiles |
+	packagesInFiles := OmbuFilesOrganizer new packagesInFiles: files.
+	packagesInSystem := packagesInSystem
+		ifNil: [ RPackageOrganizer default packageNames ].
+	^ packagesInFiles \ packagesInSystem
+]
+
 { #category : #LANSimulationExp }
 ExperimentLauncher class >> reopenLastResults [
 	<script>
@@ -255,6 +265,11 @@ ExperimentLauncher class >> reopenLastResults [
 ExperimentLauncher class >> resetLastRun [
 	"self resetLastRun"
 	lastRuns := OrderedCollection new
+]
+
+{ #category : #private }
+ExperimentLauncher class >> resetPackagesInSystem [
+	packagesInSystem := RPackageOrganizer default packageNames
 ]
 
 { #category : #'instance creation' }
@@ -357,7 +372,7 @@ ExperimentLauncher class >> runScenario: aProjectName [
 	self
 		runScenario: aProjectName
 		ombuFiles: (1 to: files size)
-		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
+		packages: (self packagesToAnalyzeInFiles: files)
 		withFinders: self defaultFinders
 ]
 
@@ -1124,7 +1139,7 @@ ExperimentLauncher >> packages [
 	^ packages
 ]
 
-{ #category : #private }
+{ #category : #accessing }
 ExperimentLauncher >> packages: aCollectionOfCategoryNames [
 	aCollectionOfCategoryNames
 		assert: aCollectionOfCategoryNames isSequenceable

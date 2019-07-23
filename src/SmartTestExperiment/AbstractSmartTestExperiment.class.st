@@ -158,6 +158,12 @@ AbstractSmartTestExperiment class >> ungenericFinders [
 ]
 
 { #category : #private }
+AbstractSmartTestExperiment >> changeIsConcernedByProject: epChange [
+	^ packages isNotEmpty
+		and: [ self packages includes: [ epChange affectedPackageName ] ]
+]
+
+{ #category : #private }
 AbstractSmartTestExperiment >> changeMustBePerformedAfterAnalysis [
 	^ currentChange content class = EpMethodRemoval
 ]
@@ -305,7 +311,7 @@ AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
 	epChange := aChange content.
 	^ aChange wasTriggered not
 		and: [ epChange isEpMethodChange
-				and: [ (self packages includes: [ epChange affectedPackageName ])
+				and: [ (self changeIsConcernedByProject: epChange)
 						and: [ epChange isIntroducingAHalt not
 								and: [ epChange isProtocolChangePriorToDeletion not
 										and: [ (self isSystemWideMethod: epChange) not ] ] ] ] ]

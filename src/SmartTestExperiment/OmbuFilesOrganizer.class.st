@@ -56,6 +56,16 @@ OmbuFilesOrganizer >> ombuFilesInDirectory: aDirectory [
 ]
 
 { #category : #'file info' }
+OmbuFilesOrganizer >> packageLoadedInFile: anOmbuFile [
+	| packages |
+	packages := ((self entriesInFile: anOmbuFile)
+		select:
+			[ :entry | entry wasTriggered ]
+		thenCollect: [ :entry | entry content affectedPackageName ]) asSet.
+	^ packages reject: [ :name | name isNil or: [ name = 'nil' ] ]
+]
+
+{ #category : #'file info' }
 OmbuFilesOrganizer >> packageNamesInFile: anOmbuFile [
 	| packages |
 	packages := ((self entriesInFile: anOmbuFile)
@@ -82,9 +92,28 @@ OmbuFilesOrganizer >> packagesInEntries: entries [
 		thenSelect: [ :name | name isNotNil ]) asSet
 ]
 
+{ #category : #private }
+OmbuFilesOrganizer >> packagesInFile: aFile ifIncludePrefix: aPrefix copyTo: aDirectory [
+	| packageNames |
+	packageNames := self packageNamesInFile: aFile.
+	(packageNames anySatisfy: [ :name | name includesSubstring: aPrefix ])
+		ifTrue: [ aFile copyTo: aDirectory ]
+]
+
 { #category : #'file info' }
 OmbuFilesOrganizer >> packagesInFiles: files [
 	^ (files flatCollect: [ :file | self packageNamesInFile: file ])
+		asSet
+]
+
+{ #category : #directory }
+OmbuFilesOrganizer >> packagesLoadedInDirectory: aDirectory [
+	^ self packagesLoadedInFiles: (self ombuFilesInDirectory: aDirectory)
+]
+
+{ #category : #'file info' }
+OmbuFilesOrganizer >> packagesLoadedInFiles: files [
+	^ (files flatCollect: [ :file | self packageLoadedInFile: file ])
 		asSet
 ]
 
