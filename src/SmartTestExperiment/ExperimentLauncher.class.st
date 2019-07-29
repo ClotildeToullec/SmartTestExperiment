@@ -285,7 +285,7 @@ ExperimentLauncher class >> runFamixExpOnFile: anOmbuFileNumber [
 	| files packages el ombFile logFile |
 	EpMonitor current disable.
 	files := self ombuFilesInProject: 'Famix'.
-	packages := OmbuFilesOrganizer new packagesInFiles: files.
+	packages := (OmbuFilesOrganizer new packagesInFiles: files) asArray.
 	self resetLastRun.
 	1 to: anOmbuFileNumber do: [ :i | 
 		ombFile := self ombuFileName: 'Famix' number: i.
