@@ -31,9 +31,11 @@ ExperimentLogger >> initialize [
 ExperimentLogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
 	(logstream notNil and: [ logstream isStream ])
 		ifFalse: [ ^ self ].
+	logstream closed
+		ifTrue: [ self reopenLog ].
 	crBefore
 		ifTrue: [ logstream cr.
-			1 to: indentLevel do: [:inx | logstream nextPut: Character tab]].
+			1 to: indentLevel do: [ :inx | logstream nextPut: Character tab ] ].
 	logstream
 		nextPutAll: aLogEntry;
 		flush
@@ -50,7 +52,10 @@ ExperimentLogger >> logCollection: aCollection [
 
 	(logstream notNil and: [ logstream isStream ])
 		ifFalse: [ ^ self ].
-	(aCollection collect: [:elem | elem printString]) asSortedCollection printOn: logstream
+	logstream closed
+		ifTrue: [ self reopenLog ].
+	(aCollection collect: [ :elem | elem printString ])
+		asSortedCollection printOn: logstream
 ]
 
 { #category : #logging }
@@ -162,4 +167,16 @@ ExperimentLogger >> openlog [
 		crBefore: false
 		indentation: 0.
 	self log: Time now printString crBefore: false indentation: 0
+]
+
+{ #category : #logging }
+ExperimentLogger >> reopenLog [
+	logstream := logFileReference writeStream.
+	logstream setToEnd.
+	logstream
+		cr;
+		<< '-------------------------------------------------';
+		<< 'Log reopenning';
+		<< '-------------------------------------------------';
+		cr
 ]
