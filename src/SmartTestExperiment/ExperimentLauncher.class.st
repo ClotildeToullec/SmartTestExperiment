@@ -219,14 +219,6 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 
 { #category : #'instance creation' }
 ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames withFinders: aSmartFindersDictionary [
-	"self onOmbuFiles: {
-		'ForwardChainer/ForwardChainer2.ombu' .
-		'ForwardChainer/ForwardChainer3.ombu' .
-		'ForwardChainer/ForwardChainer4.ombu' .
-		'ForwardChainer/ForwardChainer5.ombu' .
-		} logFileName: 'ForwardChainer_LOG'
-	withPackages: {#IABasic . #ConfigurationOfCloudforkAWS}"
-
 	| logfileRef changes fileRef |
 	changes := OrderedCollection new.
 	aListOfFileNames
@@ -288,21 +280,39 @@ ExperimentLauncher class >> runEntireLANSimulationExp [
 	self runScenario: 'LANSimulation' withFinders: self ungenericFinders
 ]
 
+{ #category : #FamixExp }
+ExperimentLauncher class >> runFamixExpOnFile: anOmbuFileNumber [
+	| files packages el ombFile logFile |
+	EpMonitor current disable.
+	files := self ombuFilesInProject: 'Famix'.
+	packages := OmbuFilesOrganizer new packagesInFiles: files.
+	self resetLastRun.
+	1 to: anOmbuFileNumber do: [ :i | 
+		ombFile := self ombuFileName: 'Famix' number: i.
+		logFile := self logFileName: 'Famix' number: i.
+		el := self
+			onOmbuFiles: {ombFile}
+			logFileName: logFile
+			withPackages: packages
+			withFinders: self ungenericFinders.
+		el
+			prepare: false;
+			run: i = anOmbuFileNumber;
+			terminate: i = anOmbuFileNumber ].
+	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
+]
+
 { #category : #'generic experiment' }
 ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
 	"Packages will not be erased before experiment"
 
-	| files organizer |
+	| files |
 	files := self ombuFilesInProject: aProjectName.
-	organizer := OmbuFilesOrganizer new.
-	organizer
-		loadProject: aProjectName
-		branch: 'development'
-		untilFile: files first.
 	self
 		runKeepingPackagesScenario: aProjectName
 		ombuFiles: (1 to: files size)
-		packages: (organizer packagesInFiles: files) asArray
+		packages: (OmbuFilesOrganizer new packagesInFiles: files) asArray
 		withFinders: self defaultFinders
 ]
 
@@ -1175,7 +1185,6 @@ ExperimentLauncher >> prepare: removePackagesFirst [
 					[ "if the package already exists, remove it" (RPackage organizer packageNamed: pckgName) removeFromSystem ]
 						on: KeyNotFound
 						do: [ "was not found so it is alright" ] ] ].
-	logger openlog
 ]
 
 { #category : #running }
@@ -1188,6 +1197,7 @@ ExperimentLauncher >> resetCollectingResults [
 { #category : #running }
 ExperimentLauncher >> run [
 	| barLabel |
+	logger openlog.
 	barLabel := 'SmartTest Experiment ('
 		, logger logFileReference basename , ')'.
 	logger logCSVHeader: measurements columnNames.
