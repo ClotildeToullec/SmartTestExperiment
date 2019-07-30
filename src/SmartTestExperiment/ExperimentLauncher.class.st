@@ -545,6 +545,30 @@ ExperimentLauncher class >> runTestScenarioFamix [
 ]
 
 { #category : #scenarios }
+ExperimentLauncher class >> runTestScenarioFast [
+	<script>
+	| files packages el ombFile logFile |
+	EpMonitor current disable.
+	files := self ombuFilesInProject: 'FAST'.
+	packages := (OmbuFilesOrganizer new packagesInFiles: files) asArray.
+	self resetLastRun.
+	1 to: 2 do: [ :i | 
+		ombFile := self ombuFileName: 'FAST' number: i.
+		logFile := self logFileName: 'FAST' number: i.
+		el := self
+			onOmbuFiles: {ombFile}
+			logFileName: logFile
+			withPackages: packages
+			withFinders: self ungenericFinders.
+		el
+			prepare: false;
+			run: i = 2;
+			terminate: i = 2 ].
+	SmalltalkImage current snapshot: true andQuit: false.
+	EpMonitor current enable
+]
+
+{ #category : #scenarios }
 ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 	"self runTestScenarioForwardChainerEx"
 
