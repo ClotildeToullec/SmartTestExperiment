@@ -35,11 +35,10 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile [
 MooseGenerationOmbuCreator >> changeShouldBeApplied [
 	| epChange |
 	epChange := currentChange content.
-	^ epChange class ~= EpProtocolRemoval
-		and: [ epChange isMonticelloVersionsLoad not
-				and: [ epChange isMonticelloVersionSave not
-						and: [ epChange isCodeChange
-								and: [ self packages includes: epChange affectedPackageName ] ] ] ]
+	^ (currentChange tags includesKey: #trigger) not
+		and: [ epChange class ~= EpProtocolRemoval
+				and: [ epChange isCodeChange
+						and: [ self packages includes: epChange affectedPackageName ] ] ]
 ]
 
 { #category : #'as yet unclassified' }
@@ -63,29 +62,22 @@ MooseGenerationOmbuCreator >> createNeOwmbuAndIncrement: bar [
 
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> generate [
-	| class instance |
-	class := currentChange content methodAffected realClass.
-	class isAbstract
-		ifTrue: [ class allSubclasses do: [ :subclass | self generate: subclass ].
-			^ self ].
-	instance := class new.
-	(class withAllSuperclasses includes: 'FamixMetaModelGenerator')
-		ifTrue: [ self generateMetaModelWithGenerator: instance ].
-	(class withAllSuperclasses includes: 'FamixTestGenerator')
-		ifTrue: [ self generateTestsWithGenerator: instance ]
+	self generate: currentChange content methodAffected realClass
 ]
 
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> generate: class [
-	| instance |
 	class isAbstract
 		ifTrue: [ class allSubclasses do: [ :subclass | self generate: subclass ].
 			^ self ].
-	instance := class new.
 	(class withAllSuperclasses includes: 'FamixMetaModelGenerator')
-		ifTrue: [ self generateMetaModelWithGenerator: instance ].
+		ifTrue: [ [ self generateMetaModelWithGenerator: class new ]
+				on: FmxMBEntityAlreadyExists
+				do: [ self inform: 'Generation failed' ] ].
 	(class withAllSuperclasses includes: 'FamixTestGenerator')
-		ifTrue: [ self generateTestsWithGenerator: instance ]
+		ifTrue: [ [ self generateTestsWithGenerator: class new ]
+				on: FmxMBEntityAlreadyExists
+				do: [ self inform: 'Generation failed' ] ]
 ]
 
 { #category : #'as yet unclassified' }
