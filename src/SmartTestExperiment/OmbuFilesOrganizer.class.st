@@ -211,3 +211,11 @@ OmbuFilesOrganizer >> sortByDate: ombuFiles [
 			(self dateOfFirstChangeInFile: file1)
 				< (self dateOfFirstChangeInFile: file2) ]
 ]
+
+{ #category : #'working session reset' }
+OmbuFilesOrganizer >> startNewOmbuFile [
+	"This method will reset the image WorkingSession. The OmSessionStore detects this reset and thus starts a new Ombu file."
+
+	[ SessionManager default currentSession uninstall ]
+		ensure: [ SessionManager default installNewSession ]
+]
