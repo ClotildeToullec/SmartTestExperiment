@@ -1,3 +1,10 @@
+"
+I process ombu files obtained from projects developed in Moose images. I should be used in a Moose image.
+
+I apply the changes to create a new ombu file.
+When a code change occurs in a metamodel or tests generator, I apply the generation without disabling EpMonitor. The code changes triggered by the generation are thus stored in the new ombu file. 
+
+"
 Class {
 	#name : #MooseGenerationOmbuCreator,
 	#superclass : #ExperimentLauncher,
@@ -69,8 +76,12 @@ MooseGenerationOmbuCreator >> generate [
 
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> generate: class [
+	"This method is not well written and should be more precise"
+
 	class isAbstract
-		ifTrue: [ class allSubclasses do: [ :subclass | self generate: subclass ].
+		ifTrue: [ class allSubclasses
+				reject: #isAbstract
+				thenDo: [ :subclass | self generate: subclass ].
 			^ self ].
 	(class withAllSuperclasses
 		includes: (SmalltalkImage current classNamed: 'FamixMetamodelGenerator'))
@@ -78,12 +89,12 @@ MooseGenerationOmbuCreator >> generate: class [
 				on: Halt
 				do: [ :halt | halt resume ] ]
 				on: Error
-				do: [ self inform: 'Generation failed' ] ].
+				do: [ self inform: 'Generation failed' ]	"FmxMBEntityAlreadyExists" ].
 	(class withAllSuperclasses
 		includes: (SmalltalkImage current classNamed: 'FamixTestGenerator'))
 		ifTrue: [ [ self generateTestsWithGenerator: class new ]
-				on: FmxMBEntityAlreadyExists
-				do: [ self inform: 'Generation failed' ] ]
+				on: Error
+				do: [ self inform: 'Generation failed' ]	"FmxMBEntityAlreadyExists" ]
 ]
 
 { #category : #'as yet unclassified' }
