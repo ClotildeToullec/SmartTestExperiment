@@ -74,8 +74,10 @@ MooseGenerationOmbuCreator >> generate: class [
 			^ self ].
 	(class withAllSuperclasses
 		includes: (SmalltalkImage current classNamed: 'FamixMetamodelGenerator'))
-		ifTrue: [ [ self generateMetaModelWithGenerator: class new ]
-				on: FmxMBEntityAlreadyExists
+		ifTrue: [ [ [ self generateMetaModelWithGenerator: class new ]
+				on: Halt
+				do: [ :halt | halt resume ] ]
+				on: Error
 				do: [ self inform: 'Generation failed' ] ].
 	(class withAllSuperclasses
 		includes: (SmalltalkImage current classNamed: 'FamixTestGenerator'))
