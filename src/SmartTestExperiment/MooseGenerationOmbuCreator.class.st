@@ -19,7 +19,10 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile [
 	anOmbuFile exists
 		ifTrue: [ changes addAll: (self ombuEntriesFromFile: anOmbuFile) ].
 	packageNames := (OmbuFilesOrganizer new
-		packageNamesInFile: anOmbuFile) asArray reject: [ :pckg | pckg includesSubstring: 'Famix-MetamodelBuilder-Test' ] .
+		packageNamesInFile: anOmbuFile) asArray
+		reject: [ :pckg | 
+			(pckg includesSubstring: 'Famix-MetamodelBuilder-Test')
+				or: [ pckg includesSubstring: 'Iceberg' ] ].
 	lastRuns
 		add:
 			(self new
@@ -35,10 +38,9 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile [
 MooseGenerationOmbuCreator >> changeShouldBeApplied [
 	| epChange |
 	epChange := currentChange content.
-	^ (currentChange tags includesKey: #trigger) not
-		and: [ epChange class ~= EpProtocolRemoval
-				and: [ epChange isCodeChange
-						and: [ self packages includes: epChange affectedPackageName ] ] ]
+	^ epChange class ~= EpProtocolRemoval
+		and: [ epChange isCodeChange
+				and: [ self packages includes: epChange affectedPackageName ] ]
 ]
 
 { #category : #'as yet unclassified' }
