@@ -72,11 +72,13 @@ MooseGenerationOmbuCreator >> generate: class [
 	class isAbstract
 		ifTrue: [ class allSubclasses do: [ :subclass | self generate: subclass ].
 			^ self ].
-	(class withAllSuperclasses includes: 'FamixMetaModelGenerator')
+	(class withAllSuperclasses
+		includes: (SmalltalkImage current classNamed: 'FamixMetamodelGenerator'))
 		ifTrue: [ [ self generateMetaModelWithGenerator: class new ]
 				on: FmxMBEntityAlreadyExists
 				do: [ self inform: 'Generation failed' ] ].
-	(class withAllSuperclasses includes: 'FamixTestGenerator')
+	(class withAllSuperclasses
+		includes: (SmalltalkImage current classNamed: 'FamixTestGenerator'))
 		ifTrue: [ [ self generateTestsWithGenerator: class new ]
 				on: FmxMBEntityAlreadyExists
 				do: [ self inform: 'Generation failed' ] ]
