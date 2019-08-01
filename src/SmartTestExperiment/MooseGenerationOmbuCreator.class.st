@@ -50,10 +50,27 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile withPackages:
 			SmalltalkImage current snapshot: true andQuit: false ]
 ]
 
+{ #category : #'change management' }
+MooseGenerationOmbuCreator >> applyChangeInGenerator [
+	self renameAuthor: 'Generation: '.
+	self startNewOmbuFile.
+	self applyCodeChange.
+	self generate.
+	self startNewOmbuFile
+]
+
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> applyCodeChange [
+	[ currentEntry content applyCodeChange.
+	nbOfChangesInOmbu := nbOfChangesInOmbu + 1 ]
+		on: Error
+		do: [ currentEntry inspectWithLabel: 'This change was not applied' ]
+]
+
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> changeShouldBeApplied [
 	| epChange |
-	epChange := currentChange content.
+	epChange := currentEntry content.
 	^ epChange class ~= EpProtocolRemoval
 		and: [ epChange isCodeChange
 				and: [ self packages includes: epChange affectedPackageName ] ]
@@ -61,17 +78,22 @@ MooseGenerationOmbuCreator >> changeShouldBeApplied [
 
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> changeWasInAGenerator [
-	^ currentChange content isEpMethodChange
-		and: [ currentChange content methodAffected className
+	^ currentEntry content isEpMethodChange
+		and: [ currentEntry content methodAffected className
 				includesSubstring: 'Generator' ]
 ]
 
 { #category : #accessing }
 MooseGenerationOmbuCreator >> checkNeedForNewOmbu [
-	(nbOfChangesInOmbu >= 100 and: [ currentChange wasTriggered not ])
+	(nbOfChangesInOmbu >= 100 and: [ currentEntry wasTriggered not ])
 		ifFalse: [ ^ self ].
 	nbOfChangesInOmbu := 0.
 	OmbuFilesOrganizer new startNewOmbuFile
+]
+
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> defaultAuthor [
+	Author fullName: 'SmTExperimentPreparation'
 ]
 
 { #category : #accessing }
@@ -82,8 +104,8 @@ MooseGenerationOmbuCreator >> fileName: aFileName [
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> generate [
 	Author
-		useAuthor: 'GenerateAfterChange: ' , currentChange printString
-		during: [ self generate: currentChange content methodAffected realClass ]
+		useAuthor: 'GenerateAfterChange: ' , currentEntry printString
+		during: [ self generate: currentEntry content methodAffected realClass ]
 ]
 
 { #category : #'as yet unclassified' }
@@ -140,18 +162,65 @@ MooseGenerationOmbuCreator >> generateTestsWithGenerator: generator [
 	generator classes do: [ :c | generator runFor: c ]
 ]
 
-{ #category : #accessing }
+{ #category : #initialization }
+MooseGenerationOmbuCreator >> initialize [
+	nbOfChangesInOmbu := 0
+]
+
+{ #category : #'change management' }
 MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
-	currentChange := anOmEntry.
-	self changeShouldBeApplied
-		ifFalse: [ ^ self ].
-	self checkNeedForNewOmbu.
-	[ currentChange content applyCodeChange ]
-		on: Error
-		do: [ currentChange inspectWithLabel: 'This change was not applied' ].
-	nbOfChangesInOmbu := nbOfChangesInOmbu + 1.
+	| currentChange |
+	currentEntry := anOmEntry.
+	currentChange := currentEntry content.
+
+	"Triggers -> Rename Author as trigger"
+	currentEntry isMonticelloVersionsLoad
+		ifTrue: [ self renameAuthor: 'Triggered by change '.
+			^ self ].
+	currentEntry isEpRefactoring
+		ifTrue: [ self renameAuthor: 'Refactoring: '.
+			^ self ].
+
+	"Exclude non interesting changes"
+	(currentChange isCodeChange not
+		or: [ currentChange class = EpProtocolRemoval
+				or: [ self packages includes: currentChange affectedPackageName ] ])
+		ifTrue: [ ^ self ].
+
+	"Generator -> Start new ombu file. Change name. Apply. Generate"
 	self changeWasInAGenerator
-		ifTrue: [ self generate ]
+		ifTrue: [ self applyChangeInGenerator.
+			^ self ].
+
+	"Triggered -> Apply whithout changing name: will be the name definied by trigger"
+	currentEntry wasTriggered
+		ifTrue: [ self applyCodeChange.
+			^ self ].
+
+	"Class/Trait modification -> Change name so the 2 changes applied will have the same author. Apply."
+	self renameAuthorFromChangeClass: currentChange class.
+
+	"Other code change -> Change the name to default"
+	self checkNeedForNewOmbu.
+	self applyCodeChange
+]
+
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> renameAuthor: aString [
+	Author
+		fullName:
+			aString , (currentEntry tagAt: #self) , ' - '
+				, currentEntry content printString
+]
+
+{ #category : #'change management' }
+MooseGenerationOmbuCreator >> renameAuthorFromChangeClass: classs [
+	({EpClassModification.
+	EpClassAddition.
+	EpTraitModification.
+	EpTraitAddition} includes: classs)
+		ifTrue: [ self renameAuthor: classs printString ]
+		ifFalse: [ self defaultAuthor ]
 ]
 
 { #category : #'as yet unclassified' }
@@ -167,4 +236,10 @@ MooseGenerationOmbuCreator >> runToCreateNewOmbuFile [
 				do: [ :anOmEntry | 
 					self manageOmbuEntry: anOmEntry.
 					bar increment ] ]
+]
+
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> startNewOmbuFile [
+	nbOfChangesInOmbu := 0.
+	OmbuFilesOrganizer new startNewOmbuFile
 ]

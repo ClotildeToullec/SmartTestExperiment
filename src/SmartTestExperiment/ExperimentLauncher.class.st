@@ -852,7 +852,7 @@ ExperimentLauncher class >> timedRun: aScenarioSelector csvBaseFileName: aFileNa
 ExperimentLauncher >> addToOracle: aTest [
 	| singleTestCaseSuite singleTestCaseWrapper methodUnderTest |
 	
-	methodUnderTest := currentChange content methodAffected
+	methodUnderTest := currentEntry content methodAffected
 		compiledMethod methodReference.
 	
 	singleTestCaseSuite := TestSuite
@@ -940,7 +940,7 @@ ExperimentLauncher >> changeShouldBeApplied [
 	"
 	
 	| epChange |
-	epChange := currentChange content.
+	epChange := currentEntry content.
 	"Exclude protocol removal"
 	^ epChange class ~= EpProtocolRemoval
 	"Exclude Monticello"
@@ -955,7 +955,7 @@ ExperimentLauncher >> collectMeasurementsCodechurn [
 	"TECHNICAL DEBTH: This should be refctored onto EPCodeChange"
 
 	| linesOfCode epChange changeSymbol |
-	epChange := currentChange content.
+	epChange := currentEntry content.
 	epChange isCodeChange
 		ifFalse: [ ^ self ].
 	epChange class = EpBehaviorCommentChange
@@ -998,13 +998,13 @@ ExperimentLauncher >> createOracle [
 	collectionOfTestSuites
 		do:
 			[ :aTestSuite | aTestSuite flatCollectTests do: [ :aTest | self addToOracle: aTest ] ].
-	logger logCreatedOracle: oracle forChange: currentChange content
+	logger logCreatedOracle: oracle forChange: currentEntry content
 ]
 
 { #category : #private }
 ExperimentLauncher >> currentChangeIsTestCaseChange [
 	| rc epChange |
-	epChange := currentChange content.
+	epChange := currentEntry content.
 	rc := nil.
 	epChange isEpClassChange
 		ifTrue: [ rc := epChange behaviorAffected realClass ].
@@ -1017,17 +1017,17 @@ ExperimentLauncher >> currentChangeIsTestCaseChange [
 
 { #category : #accessing }
 ExperimentLauncher >> currentChangeType [
-	^ currentChange content class name allButFirst: 2
+	^ currentEntry content class name allButFirst: 2
 ]
 
 { #category : #accessing }
 ExperimentLauncher >> currentMethodAffectedName [
-	^ currentChange content methodAffected fullName
+	^ currentEntry content methodAffected fullName
 ]
 
 { #category : #running }
 ExperimentLauncher >> decideChangeApplication [
-	(self smartTestInterventionNeeded: currentChange)
+	(self smartTestInterventionNeeded: currentEntry)
 		ifTrue: [ self runSmartTestAnalysis ]
 		ifFalse: [ self noSmartTestAnalysis ]
 ]
@@ -1055,7 +1055,7 @@ ExperimentLauncher >> keys [
 ExperimentLauncher >> loadAndIncrement: bar [
 	changeList
 		do: [ :anOmEntry | 
-			currentChange := anOmEntry.
+			currentEntry := anOmEntry.
 			self changeShouldBeApplied
 				ifTrue: [ self processChange ].
 			bar increment ]
@@ -1191,7 +1191,7 @@ ExperimentLauncher >> performAnalysis [
 ExperimentLauncher >> performAnalysis: aSymbol [
 	smTResults
 		at: aSymbol
-		at: currentChange content
+		at: currentEntry content
 		put: (super performAnalysis: aSymbol).
 	logger logCacheSize: (self cacheSize: (smTFinders at: aSymbol))
 ]
@@ -1253,9 +1253,9 @@ ExperimentLauncher >> runAnalysisThenChange [
 ExperimentLauncher >> runAndIncrement: bar Label: barLabel [
 	changeList
 		do: [ :anOmEntry | 
-			currentChange := anOmEntry.
+			currentEntry := anOmEntry.
 			logger
-				logStartOfCodeChange: currentChange content
+				logStartOfCodeChange: currentEntry content
 				number: self changeNumber.
 			self updateBar: bar label: barLabel.
 			self decideChangeApplication.
@@ -1304,7 +1304,7 @@ ExperimentLauncher >> terminate: aBoolean [
 ExperimentLauncher >> testsInOracle [
 	^ IdentitySet
 		withAll:
-			(oracle at: currentChange content methodAffected fullName ifAbsent: {})
+			(oracle at: currentEntry content methodAffected fullName ifAbsent: {})
 ]
 
 { #category : #running }

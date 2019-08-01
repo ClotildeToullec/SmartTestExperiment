@@ -12,14 +12,14 @@ Class {
 	#name : #AbstractSmartTestExperiment,
 	#superclass : #Object,
 	#instVars : [
-		'currentChange',
 		'collectionOfTestSuites',
 		'logger',
 		'dataSet',
 		'smTResults',
 		'smTFinders',
 		'packages',
-		'oracleFinder'
+		'oracleFinder',
+		'currentEntry'
 	],
 	#category : #'SmartTestExperiment-analysis'
 }
@@ -164,12 +164,12 @@ AbstractSmartTestExperiment >> changeIsConcernedByProject: epChange [
 
 { #category : #private }
 AbstractSmartTestExperiment >> changeMustBePerformedAfterAnalysis [
-	^ currentChange content class = EpMethodRemoval
+	^ currentEntry content class = EpMethodRemoval
 ]
 
 { #category : #accessing }
 AbstractSmartTestExperiment >> changeNumber [
-	^ (currentChange tagAt: #self) localName
+	^ (currentEntry tagAt: #self) localName
 ]
 
 { #category : #private }
@@ -196,14 +196,14 @@ AbstractSmartTestExperiment >> createTestcases [
 ]
 
 { #category : #accessing }
-AbstractSmartTestExperiment >> currentChange [
-	^ currentChange
+AbstractSmartTestExperiment >> currentEntry [
+	^ currentEntry
 ]
 
 { #category : #initialization }
 AbstractSmartTestExperiment >> initialize [
 	super initialize.
-	currentChange := nil.
+	currentEntry := nil.
 	logger := ExperimentLauncherLogger new.
 	"oracleFinder is a test finder (dynamic strategy) used to build the oracle.
 	It has been created to replace the use of the dynamic SmartFinder's finder in ExperimentLauncher>>addToOracle:"
@@ -239,7 +239,7 @@ AbstractSmartTestExperiment >> manageBuildCache [
 	ts addTests: collectionOfTestSuites.
 	smTFinders
 		valuesDo: [ :finder | 
-			finder resetCacheUsing: ts forChange: currentChange ].
+			finder resetCacheUsing: ts forChange: currentEntry ].
 	oracleFinder
 		cache: (SmTBasicCacheStrategy new cache: Dictionary new);
 		buildCacheFromTestSuite: ts
@@ -264,16 +264,16 @@ AbstractSmartTestExperiment >> performAnalysis [
 { #category : #analysis }
 AbstractSmartTestExperiment >> performAnalysis: aSymbol [
 	^ ((smTFinders at: aSymbol)
-		researchTestsForMethod: currentChange content methodAffected compiledMethod)
+		researchTestsForMethod: currentEntry content methodAffected compiledMethod)
 		collect: [ :method | method fullName ]
 ]
 
 { #category : #private }
 AbstractSmartTestExperiment >> processChange [
-	currentChange content isCodeChange
+	currentEntry content isCodeChange
 		ifTrue: [
-			logger logAppliedCodeChange: currentChange content.
-			currentChange content applyCodeChange ]
+			logger logAppliedCodeChange: currentEntry content.
+			currentEntry content applyCodeChange ]
 		ifFalse: [ logger logIgnoreCodeChange ].
 
 
