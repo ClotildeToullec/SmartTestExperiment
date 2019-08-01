@@ -8,6 +8,10 @@ When a code change occurs in a metamodel or tests generator, I apply the generat
 Class {
 	#name : #MooseGenerationOmbuCreator,
 	#superclass : #ExperimentLauncher,
+	#instVars : [
+		'nbOfChangesInOmbu',
+		'currentOmbuName'
+	],
 	#category : #'SmartTestExperiment-analysis'
 }
 
@@ -15,30 +19,35 @@ Class {
 MooseGenerationOmbuCreator class >> createNewOmbuFromFamixFiles [
 	<script>
 	(self ombuFilesInProject: 'FamixBis')
-		do: [ :file | self createNewOmbuUsing: file ]
+		do: [ :file | 
+			self
+				createNewOmbuUsing: file
+				withPackages:
+					((OmbuFilesOrganizer new packageNamesInFile: file) asArray
+						reject: [ :pckg | 
+							(pckg includesSubstring: 'Famix-MetamodelBuilder-Test')
+								or: [ pckg includesSubstring: 'Iceberg' ] ]) ]
 ]
 
 { #category : #'ombu creation' }
-MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile [
-	| el changes packageNames |
-	self resetLastRun.
-	changes := OrderedCollection new.
-	anOmbuFile exists
-		ifTrue: [ changes addAll: (self ombuEntriesFromFile: anOmbuFile) ].
-	packageNames := (OmbuFilesOrganizer new
-		packageNamesInFile: anOmbuFile) asArray
-		reject: [ :pckg | 
-			(pckg includesSubstring: 'Famix-MetamodelBuilder-Test')
-				or: [ pckg includesSubstring: 'Iceberg' ] ].
-	lastRuns
-		add:
-			(self new
-				packages: packageNames;
-				changeList: changes;
-				yourself).
-	el := self lastRun.
-	el runToCreateNewOmbuFile.
-	SmalltalkImage current snapshot: true andQuit: false
+MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile withPackages: packageNames [
+	| el changes |
+	Author
+		useAuthor: 'SmTExperimentPreparation'
+		during: [ self resetLastRun.
+			changes := OrderedCollection new.
+			anOmbuFile exists
+				ifTrue: [ changes addAll: (self ombuEntriesFromFile: anOmbuFile) ].
+			lastRuns
+				add:
+					(self new
+						packages: packageNames;
+						changeList: changes;
+						fileName: anOmbuFile basename;
+						yourself).
+			el := self lastRun.
+			el runToCreateNewOmbuFile.
+			SmalltalkImage current snapshot: true andQuit: false ]
 ]
 
 { #category : #'as yet unclassified' }
@@ -57,21 +66,24 @@ MooseGenerationOmbuCreator >> changeWasInAGenerator [
 				includesSubstring: 'Generator' ]
 ]
 
-{ #category : #'as yet unclassified' }
-MooseGenerationOmbuCreator >> createNeOwmbuAndIncrement: bar [
-	changeList
-		do: [ :anOmEntry | 
-			currentChange := anOmEntry.
-			self changeShouldBeApplied
-				ifTrue: [ currentChange content applyCodeChange.
-					self changeWasInAGenerator
-						ifTrue: [ self generate ] ].
-			bar increment ]
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> checkNeedForNewOmbu [
+	(nbOfChangesInOmbu >= 100 and: [ currentChange wasTriggered not ])
+		ifFalse: [ ^ self ].
+	nbOfChangesInOmbu := 0.
+	OmbuFilesOrganizer new startNewOmbuFile
+]
+
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> fileName: aFileName [
+	currentOmbuName := aFileName
 ]
 
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> generate [
-	self generate: currentChange content methodAffected realClass
+	Author
+		useAuthor: 'GenerateAfterChange: ' , currentChange printString
+		during: [ self generate: currentChange content methodAffected realClass ]
 ]
 
 { #category : #'as yet unclassified' }
@@ -128,13 +140,31 @@ MooseGenerationOmbuCreator >> generateTestsWithGenerator: generator [
 	generator classes do: [ :c | generator runFor: c ]
 ]
 
+{ #category : #accessing }
+MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
+	currentChange := anOmEntry.
+	self changeShouldBeApplied
+		ifFalse: [ ^ self ].
+	self checkNeedForNewOmbu.
+	[ currentChange content applyCodeChange ]
+		on: Error
+		do: [ currentChange inspectWithLabel: 'This change was not applied' ].
+	nbOfChangesInOmbu := nbOfChangesInOmbu + 1.
+	self changeWasInAGenerator
+		ifTrue: [ self generate ]
+]
+
 { #category : #'as yet unclassified' }
 MooseGenerationOmbuCreator >> runToCreateNewOmbuFile [
-		| barLabel |
-	barLabel := 'SmartTest Experiment: Loading project'.
+	| barLabel |
+	barLabel := 'Reapplying code changes from: ' , currentOmbuName.
 	UIManager default
 		displayProgress: barLabel
 		from: 1
 		to: changeList size
-		during: [ :bar | self createNeOwmbuAndIncrement: bar ]
+		during: [ :bar | 
+			changeList
+				do: [ :anOmEntry | 
+					self manageOmbuEntry: anOmEntry.
+					bar increment ] ]
 ]
