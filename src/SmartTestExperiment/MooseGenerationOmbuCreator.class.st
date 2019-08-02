@@ -15,25 +15,24 @@ Class {
 	#category : #'SmartTestExperiment-analysis'
 }
 
-{ #category : #'as yet unclassified' }
+{ #category : #running }
 MooseGenerationOmbuCreator class >> createNewOmbuFromFamixFiles [
 	<script>
+	| packages |
+	packages := #('Famix-MetamodelBuilder-Test' 'Iceberg').
 	(self ombuFilesInProject: 'FamixBis')
 		do: [ :file | 
 			self
 				createNewOmbuUsing: file
-				withPackages:
-					((OmbuFilesOrganizer new packageNamesInFile: file) asArray
-						reject: [ :pckg | 
-							(pckg includesSubstring: 'Famix-MetamodelBuilder-Test')
-								or: [ pckg includesSubstring: 'Iceberg' ] ]) ]
+				withPackages: (self packagesInFile: file excludingPrefixes: packages) ]
 ]
 
 { #category : #'ombu creation' }
 MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile withPackages: packageNames [
 	| el changes |
+	self recompileGenerationMethod.
 	Author
-		useAuthor: 'SmTExperimentPreparation'
+		useAuthor: self defaultAuthor
 		during: [ self resetLastRun.
 			changes := OrderedCollection new.
 			anOmbuFile exists
@@ -50,7 +49,43 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile withPackages:
 			SmalltalkImage current snapshot: true andQuit: false ]
 ]
 
-{ #category : #'change management' }
+{ #category : #utility }
+MooseGenerationOmbuCreator class >> defaultAuthor [
+	^ 'SmTExperimentPreparation'
+]
+
+{ #category : #utility }
+MooseGenerationOmbuCreator class >> packagesInFile: anOmbuFile excludingPrefixes: aPrefxesCollection [
+	| allPackages |
+	allPackages := (OmbuFilesOrganizer new packageNamesInFile: anOmbuFile)
+		asArray.
+	aPrefxesCollection
+		do: [ :pckgString | 
+			allPackages := allPackages
+				reject: [ :pckg | pckg includesSubstring: pckgString ] ].
+	^ allPackages
+]
+
+{ #category : #'ombu creation' }
+MooseGenerationOmbuCreator class >> recompileGenerationMethod [
+	EpMonitor current disableDuring: 
+		[ FamixMetamodelGenerator compile: 
+
+'generate
+	"This method has been recompiled to avoid disabling EpMonitor"
+
+	self define.
+	self defineMooseModel.
+	self cleaningStrategy
+		withCleaningDo: [ self builder generate.
+			subbuilders do: #generateRemotes ]
+		with: self.
+	self class resetMetamodel'
+
+				classified: 'generation' ]
+]
+
+{ #category : #generation }
 MooseGenerationOmbuCreator >> applyChangeInGenerator [
 	self startNewOmbuFile.
 	self applyCodeChange.
@@ -66,20 +101,17 @@ MooseGenerationOmbuCreator >> applyCodeChange [
 		do: [ currentEntry inspectWithLabel: 'This change was not applied' ]
 ]
 
-{ #category : #'as yet unclassified' }
-MooseGenerationOmbuCreator >> changeShouldBeApplied [
-	| epChange |
-	epChange := currentEntry content.
-	^ epChange class ~= EpProtocolRemoval
-		and: [ epChange isCodeChange
-				and: [ self packages includes: epChange affectedPackageName ] ]
-]
-
-{ #category : #'as yet unclassified' }
+{ #category : #generation }
 MooseGenerationOmbuCreator >> changeWasInAGenerator [
-	^ currentEntry content isEpMethodChange
-		and: [ currentEntry content methodAffected className
-				includesSubstring: 'Generator' ]
+	"Change in a subclass of FamixMetamodelGenerator or in FamixGenerator"
+
+	| changeClass |
+	changeClass := self currentChangeClass.
+	changeClass ifNil: [ ^ false ].
+	^ {FamixMetamodelGenerator.
+	FamixGenerator}
+		anySatisfy:
+			[ :class | changeClass = class or: [ changeClass inheritsFrom: class ] ]
 ]
 
 { #category : #accessing }
@@ -90,9 +122,12 @@ MooseGenerationOmbuCreator >> checkNeedForNewOmbu [
 	OmbuFilesOrganizer new startNewOmbuFile
 ]
 
-{ #category : #accessing }
-MooseGenerationOmbuCreator >> defaultAuthor [
-	Author fullName: 'SmTExperimentPreparation'
+{ #category : #generation }
+MooseGenerationOmbuCreator >> currentChangeClass [
+	currentEntry content isEpBehaviorChange
+		ifTrue: [ ^ currentEntry content behaviorAffected realClass ].
+	currentEntry content isEpMethodChange
+		ifTrue: [ ^ currentEntry content methodAffected compiledMethod realClass ]
 ]
 
 { #category : #accessing }
@@ -100,65 +135,11 @@ MooseGenerationOmbuCreator >> fileName: aFileName [
 	currentOmbuName := aFileName
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #generation }
 MooseGenerationOmbuCreator >> generate [
 	Author
 		useAuthor: 'GenerateAfterChange: ' , currentEntry printString
-		during: [ self generate: currentEntry content methodAffected realClass ]
-]
-
-{ #category : #'as yet unclassified' }
-MooseGenerationOmbuCreator >> generate: class [
-	"This method is not well written and should be more precise"
-
-	class isAbstract
-		ifTrue: [ class allSubclasses
-				reject: #isAbstract
-				thenDo: [ :subclass | self generate: subclass ].
-			^ self ].
-	(class withAllSuperclasses
-		includes: (SmalltalkImage current classNamed: 'FamixMetamodelGenerator'))
-		ifTrue: [ [ [ self generateMetaModelWithGenerator: class new ]
-				on: Halt
-				do: [ :halt | halt resume ] ]
-				on: Error
-				do: [ self inform: 'Generation failed' ]	"FmxMBEntityAlreadyExists" ].
-	(class withAllSuperclasses
-		includes: (SmalltalkImage current classNamed: 'FamixTestGenerator'))
-		ifTrue: [ [ self generateTestsWithGenerator: class new ]
-				on: Error
-				do: [ self inform: 'Generation failed' ]	"FmxMBEntityAlreadyExists" ]
-]
-
-{ #category : #'as yet unclassified' }
-MooseGenerationOmbuCreator >> generateMetaModelWithGenerator: generator [
-	| subbuilders builder |
-	builder := generator newBuilder.
-
-	"Copied from initialize"
-	generator adoptBuilder: builder.
-	subbuilders := Dictionary
-		newFrom:
-			(generator class submetamodels
-				collect: [ :each | 
-					| subbuilder |
-					subbuilder := each builderWithDefinitions.
-					subbuilder parentBuilder: generator builder.
-					builder environment: builder environment.
-					each prefix -> subbuilder ]).
-
-	"Copied from generate"
-	generator define.
-	generator defineMooseModel.
-	generator cleaningStrategy
-		withCleaningDo: [ generator builder generate.
-			subbuilders do: #generateRemotes ]
-		with: generator
-]
-
-{ #category : #'as yet unclassified' }
-MooseGenerationOmbuCreator >> generateTestsWithGenerator: generator [
-	generator classes do: [ :c | generator runFor: c ]
+		during: [ FamixMetamodelGenerator generateAllMetamodels ]
 ]
 
 { #category : #initialization }
@@ -166,7 +147,7 @@ MooseGenerationOmbuCreator >> initialize [
 	nbOfChangesInOmbu := 0
 ]
 
-{ #category : #'change management' }
+{ #category : #running }
 MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
 	| currentChange |
 	currentEntry := anOmEntry.
@@ -204,7 +185,7 @@ MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
 	self applyCodeChange
 ]
 
-{ #category : #accessing }
+{ #category : #renaming }
 MooseGenerationOmbuCreator >> renameAuthor: aString [
 	Author uniqueInstance
 		fullName:
@@ -212,17 +193,22 @@ MooseGenerationOmbuCreator >> renameAuthor: aString [
 				, currentEntry content printString
 ]
 
-{ #category : #'change management' }
+{ #category : #renaming }
+MooseGenerationOmbuCreator >> renameAuthorAsDefault [
+	Author fullName: self class defaultAuthor
+]
+
+{ #category : #renaming }
 MooseGenerationOmbuCreator >> renameAuthorFromChangeClass: classs [
 	({EpClassModification.
 	EpClassAddition.
 	EpTraitModification.
 	EpTraitAddition} includes: classs)
 		ifTrue: [ self renameAuthor: classs printString ]
-		ifFalse: [ self defaultAuthor ]
+		ifFalse: [ self renameAuthorAsDefault ]
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #running }
 MooseGenerationOmbuCreator >> runToCreateNewOmbuFile [
 	| barLabel |
 	barLabel := 'Reapplying code changes from: ' , currentOmbuName.
