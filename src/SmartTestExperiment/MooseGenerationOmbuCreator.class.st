@@ -52,7 +52,7 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile withPackages:
 
 { #category : #'change management' }
 MooseGenerationOmbuCreator >> applyChangeInGenerator [
-	self renameAuthor: 'Generation: '.
+	self renameAuthor: 'Generation'.
 	self startNewOmbuFile.
 	self applyCodeChange.
 	self generate.
@@ -174,17 +174,17 @@ MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
 	currentChange := currentEntry content.
 
 	"Triggers -> Rename Author as trigger"
-	currentEntry isMonticelloVersionsLoad
-		ifTrue: [ self renameAuthor: 'Triggered by change '.
+	currentChange isMonticelloVersionsLoad
+		ifTrue: [ self renameAuthor: 'Triggered'.
 			^ self ].
-	currentEntry isEpRefactoring
-		ifTrue: [ self renameAuthor: 'Refactoring: '.
+	currentChange isEpRefactoring
+		ifTrue: [ self renameAuthor: 'Refactoring'.
 			^ self ].
 
 	"Exclude non interesting changes"
 	(currentChange isCodeChange not
 		or: [ currentChange class = EpProtocolRemoval
-				or: [ self packages includes: currentChange affectedPackageName ] ])
+				or: [ (self packages includes: currentChange affectedPackageName) not ] ])
 		ifTrue: [ ^ self ].
 
 	"Generator -> Start new ombu file. Change name. Apply. Generate"
@@ -207,10 +207,13 @@ MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
 
 { #category : #accessing }
 MooseGenerationOmbuCreator >> renameAuthor: aString [
+	"Author name can only be letters and numbers. See Author>>#checkAndSetFullNameWith: "
+
 	Author
 		fullName:
-			aString , (currentEntry tagAt: #self) , ' - '
-				, currentEntry content printString
+			aString , (currentEntry tagAt: #self) globalName
+				, (currentEntry tagAt: #self) localName
+				, currentEntry content printString onlyLetters
 ]
 
 { #category : #'change management' }
