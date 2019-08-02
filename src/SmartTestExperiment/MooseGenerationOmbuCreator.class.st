@@ -52,7 +52,6 @@ MooseGenerationOmbuCreator class >> createNewOmbuUsing: anOmbuFile withPackages:
 
 { #category : #'change management' }
 MooseGenerationOmbuCreator >> applyChangeInGenerator [
-	self renameAuthor: 'Generation'.
 	self startNewOmbuFile.
 	self applyCodeChange.
 	self generate.
@@ -175,10 +174,10 @@ MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
 
 	"Triggers -> Rename Author as trigger"
 	currentChange isMonticelloVersionsLoad
-		ifTrue: [ self renameAuthor: 'Triggered'.
+		ifTrue: [ self renameAuthor: 'Triggered: '.
 			^ self ].
 	currentChange isEpRefactoring
-		ifTrue: [ self renameAuthor: 'Refactoring'.
+		ifTrue: [ self renameAuthor: 'Refactoring: '.
 			^ self ].
 
 	"Exclude non interesting changes"
@@ -207,13 +206,10 @@ MooseGenerationOmbuCreator >> manageOmbuEntry: anOmEntry [
 
 { #category : #accessing }
 MooseGenerationOmbuCreator >> renameAuthor: aString [
-	"Author name can only be letters and numbers. See Author>>#checkAndSetFullNameWith: "
-
-	Author
+	Author uniqueInstance
 		fullName:
-			aString , (currentEntry tagAt: #self) globalName
-				, (currentEntry tagAt: #self) localName
-				, currentEntry content printString onlyLetters
+			aString , (currentEntry tagAt: #self) shortName , ' - '
+				, currentEntry content printString
 ]
 
 { #category : #'change management' }
