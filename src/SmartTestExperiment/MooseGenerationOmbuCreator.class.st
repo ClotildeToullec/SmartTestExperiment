@@ -139,7 +139,11 @@ MooseGenerationOmbuCreator >> fileName: aFileName [
 MooseGenerationOmbuCreator >> generate [
 	Author
 		useAuthor: 'GenerateAfterChange: ' , currentEntry printString
-		during: [ FamixMetamodelGenerator generateAllMetamodels ]
+		during: [ [ [ FamixMetamodelGenerator generateAllMetamodels ]
+				on: Halt
+				do: [ :halt | halt resume ] ]
+				on: FmxMBEntityAlreadyExists
+				do: [ :error | self inform: 'Generation failed' ] ]
 ]
 
 { #category : #initialization }
