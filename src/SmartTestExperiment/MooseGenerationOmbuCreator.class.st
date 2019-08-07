@@ -148,6 +148,7 @@ MooseGenerationOmbuCreator >> generate [
 
 { #category : #initialization }
 MooseGenerationOmbuCreator >> initialize [
+	super initialize.
 	nbOfChangesInOmbu := 0
 ]
 

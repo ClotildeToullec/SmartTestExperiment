@@ -1229,7 +1229,7 @@ ExperimentLauncher >> run [
 		displayProgress: barLabel
 		from: 1
 		to: changeList size
-		during: [ :bar | self runAndIncrement: bar Label: barLabel ].
+		during: [ :bar | self runAndIncrement: bar label: barLabel ].
 	logger logFinalResultsForFinders: smTFinders keys.
 	measurements removeLastRowIfEmpty
 ]
@@ -1250,7 +1250,7 @@ ExperimentLauncher >> runAnalysisThenChange [
 ]
 
 { #category : #running }
-ExperimentLauncher >> runAndIncrement: bar Label: barLabel [
+ExperimentLauncher >> runAndIncrement: bar label: barLabel [
 	changeList
 		do: [ :anOmEntry | 
 			currentEntry := anOmEntry.

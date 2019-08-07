@@ -65,7 +65,7 @@ OmbuFilesOrganizer >> createRepositoryFromAuthor: anAuthor projectName: aProject
 		remote:
 			(IceGitRemote
 				url: 'https://github.com/' , anAuthor , '/' , aProjectName , '.git');
-		location: FileLocator localDirectory / 'iceberg' / 'PolyMath';
+		location: FileLocator localDirectory / 'iceberg/ombu-creation' / aProjectName;
 		createRepository.
 	^ repository
 ]
