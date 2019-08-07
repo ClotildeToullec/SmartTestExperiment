@@ -17,6 +17,59 @@ Class {
 	#category : #'SmartTestExperiment-analysis'
 }
 
+{ #category : #'ombu creation' }
+OmbuFilesOrganizer >> applyAllComitsFromGitProject: aProjectName author: anAuthor branch: aBranchName [
+	| repository branch commits |
+	self recompilePackageLoadingMethod.
+	self startNewOmbuFileNamed: aProjectName.
+
+	"Repository"
+	repository := self
+		createRepositoryFromAuthor: anAuthor
+		projectName: aProjectName.
+
+	"Branch"
+	branch := repository branchNamed: aBranchName.
+
+	"Commits from newer to older"
+	commits := branch newCommitWalk commits.
+
+	"Checkout"
+	self checkoutCommits: commits
+]
+
+{ #category : #'ombu creation' }
+OmbuFilesOrganizer >> checkoutCommits: commits [
+	UIManager default
+		displayProgress: 'Checking out commits'
+		from: 1
+		to: commits size
+		during: [ :bar | 
+			commits
+				reverseDo: [ :commit | 
+					[ commit packages
+						ifNotEmpty: [ commit
+								checkout:
+									(IceCheckoutAllPackages new
+										committish: commit;
+										yourself) ] ]
+						on: Warning
+						do: [ :warn | warn crLog ].
+					bar increment ] ]
+]
+
+{ #category : #'ombu creation' }
+OmbuFilesOrganizer >> createRepositoryFromAuthor: anAuthor projectName: aProjectName [
+	| repository |
+	repository := IceRepositoryCreator new
+		remote:
+			(IceGitRemote
+				url: 'https://github.com/' , anAuthor , '/' , aProjectName , '.git');
+		location: FileLocator localDirectory / 'iceberg' / 'PolyMath';
+		createRepository.
+	^ repository
+]
+
 { #category : #'file info' }
 OmbuFilesOrganizer >> dateOfFirstChangeInFile: anOmbuFile [
 	^ (EpLog freshFromFile: anOmbuFile) entries first tagAt: #time
@@ -34,20 +87,21 @@ OmbuFilesOrganizer >> entriesInFile: anOmbuFile [
 ]
 
 { #category : #private }
-OmbuFilesOrganizer >> loadProject: aProjectName branch: aBranchName untilFile: anOmbuFile [
-	| repository commits dateOfFirstChange |
-	self
-		flag:
-			'This does not work if the repository does not exist. TODO: automatically create the repository'.
-	repository := IceLibgitRepository allInstances
-		detect: [ :repo | repo name = aProjectName ].
+OmbuFilesOrganizer >> loadProject: aProjectName author: anAuthor branch: aBranchName untilFile: anOmbuFile [
+	| repository branch commits dateOfFirstChange |
+	repository := self
+		createRepositoryFromAuthor: anAuthor
+		projectName: aProjectName.
+	branch := repository branchNamed: aBranchName.
+	commits := branch newCommitWalk commits.
+	
+	"Reject commits after anOmbuFile"
 	dateOfFirstChange := self dateOfFirstChangeInFile: anOmbuFile.
-	commits := (repository branchNamed: aBranchName) commits.
 	commits := commits
 		reject: [ :commit | commit datetime > dateOfFirstChange ].
-	commits
-		sort: [ :commit1 :commit2 | commit1 datetime < commit2 datetime ].
-	commits last checkout
+
+	"Apply commit"
+	commits first checkout
 ]
 
 { #category : #directory }
@@ -115,6 +169,31 @@ OmbuFilesOrganizer >> packagesLoadedInDirectory: aDirectory [
 OmbuFilesOrganizer >> packagesLoadedInFiles: files [
 	^ (files flatCollect: [ :file | self packageLoadedInFile: file ])
 		asSet
+]
+
+{ #category : #private }
+OmbuFilesOrganizer >> recompilePackageLoadingMethod [
+	EpMonitor current disable.
+	IceWorkingCopy
+		compile:
+			'loadPackagesNamed: aCollection fromCommit: aCommit
+	"This method has been recompiled to take into account the packages of the commit and not thoses of the repository "
+	packages := (aCommit packages collect: [ :e | e name -> e ])
+		asDictionary.
+	self
+		ignoreNotificationsDuring: [ | loader |
+			loader := MCVersionLoader new.
+			aCollection
+				do: [ :name | 
+					| package packageVersion |
+					package := self packageNamed: name.
+					packageVersion := (IceSavedPackageVersion
+						fromCommit: aCommit
+						package: package) mcVersion.
+					loader addVersion: packageVersion.
+					package beClean ].
+			loader load ]'.
+	EpMonitor current disable
 ]
 
 { #category : #entries }
@@ -212,10 +291,19 @@ OmbuFilesOrganizer >> sortByDate: ombuFiles [
 				< (self dateOfFirstChangeInFile: file2) ]
 ]
 
-{ #category : #'working session reset' }
+{ #category : #'ombu creation' }
 OmbuFilesOrganizer >> startNewOmbuFile [
-	"This method will reset the image WorkingSession. The OmSessionStore detects this reset and thus starts a new Ombu file."
+	| store |
+	store := EpMonitor current sessionStore.
+	store resetWithNextStoreName
+]
 
-	[ SessionManager default currentSession uninstall ]
-		ensure: [ SessionManager default installNewSession ]
+{ #category : #'ombu creation' }
+OmbuFilesOrganizer >> startNewOmbuFileNamed: aName [
+	| store |
+	store := EpMonitor current sessionStore.
+	self
+		assert: [ (store existsStoreNamed: aName) not ]
+		description: 'Ombu file already exists'.
+	store resetWithStoreNamed: aName
 ]
