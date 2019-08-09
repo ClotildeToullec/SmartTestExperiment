@@ -111,6 +111,8 @@ ExperimentLogger >> logNoSmarttestAnalysis [
 { #category : #logging }
 ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
 	self
+		separationLine;
+		separationLine;
 		blankLine;
 		log:
 			'-------------------------- change ' , changeNumber asString

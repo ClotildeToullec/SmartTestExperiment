@@ -1282,6 +1282,7 @@ ExperimentLauncher >> runAnalysisThenChange [
 ExperimentLauncher >> runAndIncrement: bar label: barLabel [
 	changeList
 		do: [ :anOmEntry | 
+			self resetResults.
 			currentEntry := anOmEntry.
 			currentChange := currentEntry content.
 			logger
@@ -1302,7 +1303,6 @@ ExperimentLauncher >> runChangeThenAnalysis [
 
 { #category : #running }
 ExperimentLauncher >> runSmartTestAnalysis [
-	self resetResults.
 	measurements
 		initializeRow: self changeNumber
 		change: self currentMethodAffectedName
