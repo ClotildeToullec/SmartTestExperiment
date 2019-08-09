@@ -9,9 +9,15 @@ Class {
 }
 
 { #category : #logging }
+ExperimentLogger >> blankLine [
+	self log: '' crBefore: true indentation: 0
+]
+
+{ #category : #logging }
 ExperimentLogger >> closelog [
+	self separationLine.
 	self
-		log: '-- Terminating Smarttest experiment at '
+		log: 'Terminating Smarttest experiment at '
 		crBefore: true
 		indentation: 0.
 	self log: Time now printString crBefore: false indentation: 0.
@@ -43,7 +49,10 @@ ExperimentLogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
 
 { #category : #logging }
 ExperimentLogger >> logAppliedCodeChange: aChange [
-	self log: 'Applied code change ' , aChange printString crBefore: true indentation: 1
+	self
+		log: '** Code change applied: ' , aChange printString
+		crBefore: true
+		indentation: 0
 ]
 
 { #category : #logging }
@@ -55,27 +64,12 @@ ExperimentLogger >> logCollection: aCollection [
 	logstream closed
 		ifTrue: [ self reopenLog ].
 	(aCollection collect: [ :elem | elem printString ])
-		asSortedCollection printOn: logstream
-]
-
-{ #category : #logging }
-ExperimentLogger >> logCreatedOracle: mapMethodUnderTestToTestcase forChange: aChange [
-	| currentOracle |
-	self log: 'Oracle Methodundertest -> Testcase: --- ' crBefore: true indentation: 2.
-	aChange isNil
-		ifTrue: [ mapMethodUnderTestToTestcase keysSortedSafely
-				do: [ :key | 
-					self log: key asString crBefore: true indentation: 3.
-					self log: (mapMethodUnderTestToTestcase at: key) printString crBefore: true indentation: 4 ] ]
-		ifFalse: [ currentOracle := mapMethodUnderTestToTestcase at: aChange methodAffected fullName ifAbsent: [ {'No test case found'} ].
-			self log: aChange methodAffected fullName asString crBefore: true indentation: 3.
-			self log: '' crBefore: true indentation: 4.
-				self logCollection: currentOracle]
+		asSortedCollection printElementsOn: logstream
 ]
 
 { #category : #logging }
 ExperimentLogger >> logCreatedTestcases: testCaseClasses [
-	self log: '** created testCases >> ' crBefore: true indentation: 1.
+	self log: '** created testCases >> ' crBefore: true indentation: 0.
 	self log: 'Testcases: ' crBefore: true indentation: 2.
 	self logCollection: testCaseClasses.
 
@@ -120,41 +114,23 @@ ExperimentLogger >> logNoSmarttestAnalysis [
 ]
 
 { #category : #logging }
-ExperimentLogger >> logSeparationLine: changeNumber [
-	
-	self log: '------------------------- change ', changeNumber asString, '-------------------------'  crBefore: true indentation: 0
-]
-
-{ #category : #logging }
-ExperimentLogger >> logStartOfCodeChange: aChange [
-	self
-		log: '-------------------------------------------------------------------'
-		crBefore: true
-		indentation: 0.
-	self log: aChange printString crBefore: true indentation: 0.
-	aChange isEpMethodChange
-		ifFalse: [ ^ self ].
-	self
-		log: aChange methodAffected sourceCode
-		crBefore: true
-		indentation: 0.
-	self
-		log: '...................................................................'
-		crBefore: true
-		indentation: 0
-]
-
-{ #category : #logging }
 ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
-	self logSeparationLine: changeNumber.
-	self log: aChange printString crBefore: true indentation: 0.
+	self
+		blankLine;
+		log:
+			'------------------------- change ' , changeNumber asString
+				, ' -------------------------'
+			crBefore: true
+			indentation: 0;
+		log: aChange printString crBefore: true indentation: 0;
+		blankLine.
 	aChange isEpMethodChange
 		ifFalse: [ ^ self ].
 	self
 		log: aChange methodAffected sourceCode
-		crBefore: true
-		indentation: 0.
-	self log: '..........................' crBefore: true indentation: 0
+			crBefore: true
+			indentation: 0;
+		separationLine
 ]
 
 { #category : #logging }
@@ -163,20 +139,27 @@ ExperimentLogger >> openlog [
 		ifTrue: [ logFileReference delete ].
 	logstream := logFileReference writeStream.
 	self
-		log: '-- Launching Smarttest experiment at '
+		log: 'Launching Smarttest experiment at '
 		crBefore: false
 		indentation: 0.
-	self log: Time now printString crBefore: false indentation: 0
+	self log: Time now printString crBefore: false indentation: 0.
+	self separationLine
 ]
 
 { #category : #logging }
 ExperimentLogger >> reopenLog [
 	logstream := logFileReference writeStream.
 	logstream setToEnd.
-	logstream
-		cr;
-		<< '-------------------------------------------------';
-		<< 'Log reopenning';
-		<< '-------------------------------------------------';
-		cr
+	self
+		separationLine;
+		log: 'Log reopenning' crBefore: true indentation: 0;
+		separationLine
+]
+
+{ #category : #'final logging' }
+ExperimentLogger >> separationLine [
+	self
+		log: '-------------------------------------------------------------------'
+		crBefore: true
+		indentation: 0
 ]

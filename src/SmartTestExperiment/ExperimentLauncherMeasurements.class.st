@@ -214,37 +214,24 @@ ExperimentLauncherMeasurements >> total: aSymbol [
 ]
 
 { #category : #accessing }
+ExperimentLauncherMeasurements >> totalCodeChurn: aSymbol [
+	| totalDict |
+	totalDict := OrderedDictionary new
+		addAll:
+			(#(#linesAdded #linesDeleted #linesModified)
+				collect: [ :keyword | keyword -> (self total: aSymbol , keyword capitalized) ]);
+		yourself.
+	totalDict add: #totalCodeChurn -> totalDict values sum.
+	^ totalDict
+]
+
+{ #category : #accessing }
 ExperimentLauncherMeasurements >> totalResultsForFinder: aSymbol [
 	^ OrderedDictionary new
 		addAll:
-			((#(#truePositives #falsePositives #falseNegatives #trueNegatives)
-				collect: [ :key | key , aSymbol capitalized ])
-				collect: [ :keyword | keyword -> (self total: keyword) ]);
+			(#(#truePositives #falsePositives #falseNegatives #trueNegatives)
+				collect: [ :key | key -> (self total: key , aSymbol capitalized) ]);
 		yourself
-]
-
-{ #category : #accessing }
-ExperimentLauncherMeasurements >> totalSourceCodeChurn [
-	| totalDict |
-	totalDict := OrderedDictionary new
-		addAll:
-			(#(#sourceLinesAdded #sourceLinesDeleted #sourceLinesModified)
-				collect: [ :keyword | keyword -> (self total: keyword) ]);
-		yourself.
-	totalDict add: #totalSourceCodeChurn -> totalDict values sum.
-	^ totalDict
-]
-
-{ #category : #accessing }
-ExperimentLauncherMeasurements >> totalTestCodeChurn [
-	| totalDict |
-	totalDict := OrderedDictionary new
-		addAll:
-			(#(#testLinesAdded #testLinesDeleted #testLinesModified)
-				collect: [ :keyword | keyword -> (self total: keyword) ]);
-		yourself.
-	totalDict add: #totalTestCodeChurn -> totalDict values sum.
-	^ totalDict
 ]
 
 { #category : #'execution time' }

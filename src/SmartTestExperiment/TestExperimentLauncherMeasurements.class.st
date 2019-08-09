@@ -134,12 +134,12 @@ TestExperimentLauncherMeasurements >> testSourceCodeChurn [
 		assert: (lastRow at: #sourceLinesDeleted) equals: 1.
 
 	"Total"
-	total := measurements totalSourceCodeChurn.
+	total := measurements totalCodeChurn: #source.
 	self
-		assert: (total at: #sourceLinesAdded) equals: 9;
-		assert: (total at: #sourceLinesModified) equals: 7;
-		assert: (total at: #sourceLinesDeleted) equals: 5;
-		assert: (total at: #totalSourceCodeChurn) equals: 21
+		assert: (total at: #linesAdded) equals: 9;
+		assert: (total at: #linesModified) equals: 7;
+		assert: (total at: #linesDeleted) equals: 5;
+		assert: (total at: #totalCodeChurn) equals: 21
 ]
 
 { #category : #running }
@@ -169,12 +169,12 @@ TestExperimentLauncherMeasurements >> testTestCodeChurn [
 		assert: (lastRow at: #testLinesDeleted) equals: 1.
 
 	"Total"
-	total := measurements totalTestCodeChurn.
+	total := measurements totalCodeChurn: #test.
 	self
-		assert: (total at: #testLinesAdded) equals: 9;
-		assert: (total at: #testLinesModified) equals: 7;
-		assert: (total at: #testLinesDeleted) equals: 5;
-		assert: (total at: #totalTestCodeChurn) equals: 21
+		assert: (total at: #linesAdded) equals: 9;
+		assert: (total at: #linesModified) equals: 7;
+		assert: (total at: #linesDeleted) equals: 5;
+		assert: (total at: #totalCodeChurn) equals: 21
 ]
 
 { #category : #tests }

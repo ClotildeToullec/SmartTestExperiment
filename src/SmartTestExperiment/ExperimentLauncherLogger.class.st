@@ -4,32 +4,34 @@ Utility class for logging results
 Class {
 	#name : #ExperimentLauncherLogger,
 	#superclass : #ExperimentLogger,
-	#instVars : [
-		'measurements'
-	],
 	#category : #'SmartTestExperiment-reporting'
 }
 
-{ #category : #accessing }
-ExperimentLauncherLogger >> launcherMeasurements: aLauncherMeasurements [
-	measurements := aLauncherMeasurements
+{ #category : #'final logging' }
+ExperimentLauncherLogger >> log: aSymbol totalCodeChurn: aDictionary [
+	self
+		log: aSymbol asString capitalized , ' code : '
+		crBefore: true
+		indentation: 0.
+	aDictionary
+		keysAndValuesDo: [ :key :value | 
+			self
+				log: (self symbolToString: key) , ' = ' , value printString
+				crBefore: true
+				indentation: 1 ]
 ]
 
 { #category : #'analysis logging' }
 ExperimentLauncherLogger >> logAnalysis: smartTestResults [
-	self log: '** smarttest analysis >> ' crBefore: true indentation: 1.
+	self log: '** SmartTest analysis >> ' crBefore: true indentation: 1.
 	smartTestResults
 		keysAndValuesDo: [ :keyword :result | 
 			self
-				log: 'smarttestResults' , keyword asString capitalized , ': ---'
+				log: 'SmartTest selection: ' , (self symbolToString: keyword) , ':'
 				crBefore: true
 				indentation: 2.
 			result
-				keysAndValuesDo: [ :anEpChange :aCollectionOfMethodReferences | 
-					self
-						log: anEpChange methodAffected fullName
-						crBefore: true
-						indentation: 3.
+				keysDo: [ :aCollectionOfMethodReferences | 
 					self log: '' crBefore: true indentation: 4.
 					self logCollection: aCollectionOfMethodReferences ] ].
 	smartTestResults size == 2
@@ -48,7 +50,9 @@ ExperimentLauncherLogger >> logCSVHeader: columnNames [
 
 { #category : #csv }
 ExperimentLauncherLogger >> logCSVRow: values [
-	self log: '"CSV"' crBefore: true indentation: 0.
+	self
+		blankLine;
+		log: '"CSV"' crBefore: true indentation: 0.
 	values
 		do: [ :value | 
 			logstream
@@ -59,25 +63,26 @@ ExperimentLauncherLogger >> logCSVRow: values [
 { #category : #'results logging' }
 ExperimentLauncherLogger >> logCacheResetForFinder: aSymbol [
 	self
-		log: 'Cache Reset: ' , (self symbolToString: aSymbol)
+		log: '** Cache Reset: ' , (self symbolToString: aSymbol)
 		crBefore: true
-		indentation: 1.
-	measurements
-		incrementResult: #cacheReset , aSymbol capitalized
-		withAmount: 1
+		indentation: 2
 ]
 
 { #category : #logging }
-ExperimentLauncherLogger >> logCacheSize: anInt [
-	self log: 'smarttestResults cacheSize = ' , anInt printString, ' kilobytes' crBefore: true indentation: 2
-]
-
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logCollectingMeasurementsPrecision: aSymbol [
+ExperimentLauncherLogger >> logCacheSize: anInt for: aSymbol [
 	self
-		log: 'Measure precision ' , aSymbol asString , ' --- '
+		log:
+			(self symbolToString: aSymbol) , ' cache size = ' , anInt printString
+				, ' kilobytes'
 		crBefore: true
 		indentation: 2
+]
+
+{ #category : #logging }
+ExperimentLauncherLogger >> logCreatedOracle: oracle [
+	self log: '** Oracle creation: ' crBefore: true indentation: 2.
+	self log: '' crBefore: true indentation: 3.
+	self logCollection: (oracle ifEmpty: [ {'No tests found'} ])
 ]
 
 { #category : #'analysis logging' }
@@ -87,53 +92,23 @@ ExperimentLauncherLogger >> logDifferenceBetween: smartTestResults [
 		difference: (smartTestResults values second) values.
 	difference isEmpty
 		ifTrue: [ self
-				log: 'smarttestResults No Difference'
+				log: 'No difference between strategies'
 				crBefore: true
 				indentation: 2 ]
 		ifFalse: [ self
-				log: 'smarttestResults Difference: ---'
+				log: 'Difference between strategies:'
 				crBefore: true
 				indentation: 2.
 			self logCollection: difference asSet flattened]
 ]
 
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logFalseNegatives: aSetOfMethodSelectors forFinder: aSymbol [
-	aSetOfMethodSelectors isEmpty
-		ifTrue: [ self log: 'No false negatives' crBefore: true indentation: 3 ]
-		ifFalse: [ measurements
-				incrementResult: #falseNegatives , aSymbol capitalized
-				withAmount: aSetOfMethodSelectors size.
-			self
-				log: '!! false negatives >> ' , aSetOfMethodSelectors size printString
-				crBefore: true
-				indentation: 3.
-			self log: '' crBefore: true indentation: 4.
-			self logCollection: aSetOfMethodSelectors ]
-]
-
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logFalsePositives: aSetOfMethodSelectors forFinder: aSymbol [
-	aSetOfMethodSelectors isEmpty
-		ifTrue: [ self log: 'No false positives' crBefore: true indentation: 3 ]
-		ifFalse: [ measurements
-				incrementResult: #falsePositives , aSymbol capitalized
-				withAmount: aSetOfMethodSelectors size.
-			self
-				log: '?? false positives >> ' , aSetOfMethodSelectors size printString
-				crBefore: true
-				indentation: 3.
-			self log: '' crBefore: true indentation: 4.
-			self logCollection: aSetOfMethodSelectors ]
-]
-
 { #category : #'final logging' }
-ExperimentLauncherLogger >> logFinalResult: aSymbol forFinder: aFinderSymbol [
+ExperimentLauncherLogger >> logFinalResults: aDictionaryOfResults ofFinder: aFinderSymbol [
 	self
-		log: (self symbolToString: aSymbol , aFinderSymbol capitalized) , ': '
+		log: 'Total results ' , aFinderSymbol capitalized , ': '
 		crBefore: true
 		indentation: 0.
-	(measurements totalResultsForFinder: aFinderSymbol)
+	aDictionaryOfResults
 		keysAndValuesDo: [ :key :value | 
 			self
 				log: (self symbolToString: key) , ' = ' , value printString
@@ -141,17 +116,30 @@ ExperimentLauncherLogger >> logFinalResult: aSymbol forFinder: aFinderSymbol [
 				indentation: 1 ]
 ]
 
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> logFinalResultsForFinders: aSymbolCollection [
+{ #category : #'results logging' }
+ExperimentLauncherLogger >> logPrecision: aSymbol [
 	self
-		log: '-------------------------------------------------------------------'
-		crBefore: true
-		indentation: 0.
-	aSymbolCollection
-		do: [ :symbol | self logFinalResult: #totalResults forFinder: symbol ].
-	self
-		logTotalSourceCodeChurn;
-		logTotalTestCodeChurn
+		blankLine;
+		log: ' ----- ' , 'Precision ' , aSymbol asString , ' ----- '
+			crBefore: true
+			indentation: 2
+]
+
+{ #category : #'results logging' }
+ExperimentLauncherLogger >> logTests: aSetOfMethodSelectors asResult: aSymbol [
+	| resultString |
+	resultString := self symbolToString: aSymbol.
+	aSetOfMethodSelectors isEmpty
+		ifTrue: [ self
+				log: 'No ' , resultString asLowercase
+				crBefore: true
+				indentation: 3 ]
+		ifFalse: [ self
+				log: resultString , ' >> ' , aSetOfMethodSelectors size printString
+				crBefore: true
+				indentation: 3.
+			self log: '' crBefore: true indentation: 4.
+			self logCollection: aSetOfMethodSelectors ]
 ]
 
 { #category : #'execution time' }
@@ -162,58 +150,6 @@ ExperimentLauncherLogger >> logTime: aDuration forFinder: aSymbol [
 				, aDuration printString , ' milliseconds'
 		crBefore: true
 		indentation: 2
-]
-
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> logTotalSourceCodeChurn [
-	self log: 'Total Source Code Churn : ' crBefore: true indentation: 0.
-	measurements totalSourceCodeChurn
-		keysAndValuesDo: [ :key :value | 
-			self
-				log: (self symbolToString: key) , ' = ' , value printString
-				crBefore: true
-				indentation: 1 ]
-]
-
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> logTotalTestCodeChurn [
-	self log: 'Total Test Code Churn : ' crBefore: true indentation: 0.
-	measurements totalTestCodeChurn
-		keysAndValuesDo: [ :key :value | 
-			self
-				log: (self symbolToString: key) , ' = ' , value printString
-				crBefore: true
-				indentation: 1 ]
-]
-
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logTrueNegatives: aSetOfMethodSelectors forFinder: aSymbol [
-	aSetOfMethodSelectors isEmpty
-		ifTrue: [ self log: 'No true negatives' crBefore: true indentation: 3 ]
-		ifFalse: [ measurements
-				incrementResult: #trueNegatives , aSymbol capitalized
-				withAmount: aSetOfMethodSelectors size.
-			self
-				log: '++ true negatives >> ' , aSetOfMethodSelectors size printString
-				crBefore: true
-				indentation: 3.
-			self log: '' crBefore: true indentation: 4.
-			self logCollection: aSetOfMethodSelectors ]
-]
-
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logTruePositives: aSetOfMethodSelectors forFinder: aSymbol [
-	aSetOfMethodSelectors isEmpty
-		ifTrue: [ self log: 'No true positives' crBefore: true indentation: 3 ]
-		ifFalse: [ measurements
-				incrementResult: #truePositives , aSymbol capitalized
-				withAmount: aSetOfMethodSelectors size.
-			self
-				log: '## true positives >> ' , aSetOfMethodSelectors size printString
-				crBefore: true
-				indentation: 3.
-			self log: '' crBefore: true indentation: 4.
-			self logCollection: aSetOfMethodSelectors ]
 ]
 
 { #category : #'final logging' }

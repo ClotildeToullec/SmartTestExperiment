@@ -18,7 +18,6 @@ Class {
 		'smTResults',
 		'smTFinders',
 		'packages',
-		'oracleFinder',
 		'currentEntry'
 	],
 	#category : #'SmartTestExperiment-analysis'
@@ -185,13 +184,12 @@ AbstractSmartTestExperiment >> createTestSuite: aCollectionOfMethodReferences [
 { #category : #'actions-public' }
 AbstractSmartTestExperiment >> createTestcases [
 	| testCaseClasses |
-	testCaseClasses := self packages flatCollect: [ :each | 
-		(each asPackageIfAbsent: [ nil ])
-			ifNotNil: [ :package | package classes select: #isTestCase ]
-			ifNil: [ #() ]
-	].
+	testCaseClasses := self packages
+		flatCollect: [ :each | 
+			(each asPackageIfAbsent: [ nil ])
+				ifNotNil: [ :package | package classes select: #isTestCase ]
+				ifNil: [ #() ] ].
 	collectionOfTestSuites := testCaseClasses collect: #buildSuite.
-
 	logger logCreatedTestcases: testCaseClasses
 ]
 
@@ -204,10 +202,7 @@ AbstractSmartTestExperiment >> currentEntry [
 AbstractSmartTestExperiment >> initialize [
 	super initialize.
 	currentEntry := nil.
-	logger := ExperimentLauncherLogger new.
-	"oracleFinder is a test finder (dynamic strategy) used to build the oracle.
-	It has been created to replace the use of the dynamic SmartFinder's finder in ExperimentLauncher>>addToOracle:"
-	oracleFinder := SmTTestCoverageTestFinderStrategy new
+	logger := ExperimentLauncherLogger new
 ]
 
 { #category : #private }
@@ -233,16 +228,7 @@ AbstractSmartTestExperiment >> logFileReference: logfileRef [
 
 { #category : #analysis }
 AbstractSmartTestExperiment >> manageBuildCache [
-	| ts |
-	self createTestcases.
-	ts := TestSuite new.
-	ts addTests: collectionOfTestSuites.
-	smTFinders
-		valuesDo: [ :finder | 
-			finder resetCacheUsing: ts forChange: currentEntry ].
-	oracleFinder
-		cache: (SmTBasicCacheStrategy new cache: Dictionary new);
-		buildCacheFromTestSuite: ts
+	self subclassResponsibility
 ]
 
 { #category : #private }

@@ -850,38 +850,18 @@ ExperimentLauncher class >> timedRun: aScenarioSelector csvBaseFileName: aFileNa
 
 { #category : #'oracle creation' }
 ExperimentLauncher >> addToOracle: aTest [
-	| singleTestCaseSuite singleTestCaseWrapper methodUnderTest |
-	
-	methodUnderTest := currentEntry content methodAffected
-		compiledMethod methodReference.
-	
-	singleTestCaseSuite := TestSuite
-		named: 'Single Test Case for ' , aTest selector.
-	singleTestCaseSuite addTest: aTest.
-	
-	singleTestCaseWrapper := SmTTestCoverage new
-		finder: oracleFinder;
-		initializeOn: methodUnderTest.
-	
-	[ singleTestCaseWrapper install.
-	[ singleTestCaseSuite run ]
-		ensure: [ singleTestCaseWrapper uninstall ] ] valueUnpreemptively.
-	
-	singleTestCaseWrapper hasRun
-		ifTrue: [ self
-				addToTestResultCovered: singleTestCaseWrapper reference fullName
-				byTest: aTest ]
+	oracle
+		add:
+			(aTest class lookupSelector: aTest selector) methodReference fullName
 ]
 
 { #category : #'oracle creation' }
-ExperimentLauncher >> addToTestResultCovered: methodUnderTest byTest: aTest [
-	| testCase |
-	testCase := (aTest class lookupSelector: aTest selector)
-		methodReference fullName.
-	oracle
-		at: methodUnderTest
-		ifPresent: [ :set | set add: testCase ]
-		ifAbsentPut: (Set with: testCase)
+ExperimentLauncher >> addToOracleIfAffected: aTest [
+	| proxy |
+	proxy := self proxyOnCurrentMethod.
+	self runTest: aTest withProxyOnCurrentMethod: proxy.
+	proxy hasRun
+		ifTrue: [ self addToOracle: aTest ]
 ]
 
 { #category : #accessing }
@@ -993,12 +973,10 @@ ExperimentLauncher >> collectMeasurementsCodechurn [
 
 { #category : #'oracle creation' }
 ExperimentLauncher >> createOracle [
-	"self runCreationOfOracle"
-
 	collectionOfTestSuites
-		do:
-			[ :aTestSuite | aTestSuite flatCollectTests do: [ :aTest | self addToOracle: aTest ] ].
-	logger logCreatedOracle: oracle forChange: currentEntry content
+		do: [ :aTestSuite | 
+			aTestSuite flatCollectTests
+				do: [ :aTest | self addToOracleIfAffected: aTest ] ]
 ]
 
 { #category : #private }
@@ -1041,9 +1019,8 @@ ExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
 ExperimentLauncher >> initialize [
 	super initialize.
 	changeList := {}.
-	oracle := IdentityDictionary new.
-	measurements := ExperimentLauncherMeasurements new: smTFinders keys.
-	logger launcherMeasurements: measurements
+	oracle := IdentitySet new.
+	measurements := ExperimentLauncherMeasurements new: smTFinders keys
 ]
 
 { #category : #accessing }
@@ -1059,33 +1036,6 @@ ExperimentLauncher >> loadAndIncrement: bar [
 			self changeShouldBeApplied
 				ifTrue: [ self processChange ].
 			bar increment ]
-]
-
-{ #category : #logging }
-ExperimentLauncher >> logCacheResetForFinder: aSymbol [
-	logger logCacheResetForFinder: aSymbol
-]
-
-{ #category : #logging }
-ExperimentLauncher >> logMeasurementsPrecision [
-	| smarttestAdvice testsInOracle allTests |
-	allTests := self allTests.
-	testsInOracle := self testsInOracle.
-	smTResults
-		keysAndValuesDo: [ :key :results | 
-			smarttestAdvice := IdentitySet new.
-			smarttestAdvice
-				addAll: (results values flattened intersection: self allTests).
-			logger
-				logCollectingMeasurementsPrecision: key;
-				logTruePositives: (smarttestAdvice intersection: testsInOracle)
-					forFinder: key;
-				logFalsePositives: (smarttestAdvice difference: testsInOracle)
-					forFinder: key;
-				logFalseNegatives: (testsInOracle difference: smarttestAdvice)
-					forFinder: key;
-				logTrueNegatives: ((allTests difference: smarttestAdvice) difference: testsInOracle)
-					forFinder: key ]
 ]
 
 { #category : #logging }
@@ -1110,7 +1060,7 @@ ExperimentLauncher >> logTimeSavings [
 { #category : #analysis }
 ExperimentLauncher >> manageAnalysis [
 	self performAnalysis.
-	self logMeasurementsPrecision
+	self measurePrecision
 ]
 
 { #category : #analysis }
@@ -1125,24 +1075,33 @@ ExperimentLauncher >> manageBuildCache [
 			previousCache := finder currentCache copy.
 			finder emptyCache.
 			finder currentCache = previousCache
-				ifFalse: [ self logCacheResetForFinder: key ].
-			finder currentCache ifEmpty: [ finder buildCacheFromTestSuite: ts ] ].
-	oracleFinder
-		cache: (SmTBasicCacheStrategy new cache: Dictionary new);
-		buildCacheFromTestSuite: ts
+				ifFalse: [ self recordCacheReset: key ].
+			finder currentCache ifEmpty: [ finder buildCacheFromTestSuite: ts ] ]
 ]
 
 { #category : #'oracle creation' }
 ExperimentLauncher >> manageBuildOracle [
 	logger log: '** creating Oracle ' crBefore: true indentation: 1.
-	self createTestcases. "Because applying change may have added/removed/changed a test"
-	self createOracle
+	self createTestcases.	"Because applying change may have added/removed/changed a test"
+	self createOracle.
+	logger logCreatedOracle: oracle
 ]
 
 { #category : #analysis }
 ExperimentLauncher >> manageChange [
 	self processChange.
 	self collectMeasurementsCodechurn.
+]
+
+{ #category : #logging }
+ExperimentLauncher >> measurePrecision [
+	smTResults
+		keysAndValuesDo: [ :key :results | 
+			| smartTestSelection |
+			smartTestSelection := IdentitySet new
+				addAll: (results values flattened intersection: self allTests);
+				yourself.
+			self recordResults: smartTestSelection for: key ]
 ]
 
 { #category : #accessing }
@@ -1193,7 +1152,9 @@ ExperimentLauncher >> performAnalysis: aSymbol [
 		at: aSymbol
 		at: currentEntry content
 		put: (super performAnalysis: aSymbol).
-	logger logCacheSize: (self cacheSize: (smTFinders at: aSymbol))
+	logger
+		logCacheSize: (self cacheSize: (smTFinders at: aSymbol))
+		for: aSymbol
 ]
 
 { #category : #'actions-public' }
@@ -1211,26 +1172,94 @@ ExperimentLauncher >> prepare: removePackagesFirst [
 						do: [ "was not found so it is alright" ] ] ].
 ]
 
+{ #category : #'oracle creation' }
+ExperimentLauncher >> proxyOnCurrentMethod [
+	| currentMethod |
+	currentMethod := currentEntry content methodAffected compiledMethod
+		methodReference.
+	^ HDTestCoverage new initializeOn: currentMethod
+]
+
+{ #category : #analysis }
+ExperimentLauncher >> recordCacheReset: key [
+	logger logCacheResetForFinder: key.
+	measurements
+		incrementResult: #cacheReset , key capitalized
+		withAmount: 1
+]
+
 { #category : #running }
-ExperimentLauncher >> resetCollectingResults [
+ExperimentLauncher >> recordEndOfExperiment [
+	2 timesRepeat: [ logger separationLine ].
+	smTFinders
+		keysDo: [ :symbol | 
+			logger
+				logFinalResults: (measurements totalResultsForFinder: symbol)
+				ofFinder: symbol ].
+	logger separationLine.
+	#(source test)
+		do: [ :symbol | 
+			logger
+				log: symbol
+				totalCodeChurn: (measurements totalCodeChurn: symbol) ]
+]
+
+{ #category : #logging }
+ExperimentLauncher >> recordResults: smartTestSelection for: key [
+	| testsInOracle truePositives falsePositives falseNegatives trueNegatives |
+	testsInOracle := self testsInOracle.
+	logger logPrecision: key.
+
+	"True Positives"
+	truePositives := smartTestSelection intersection: testsInOracle.
+	logger logTests: truePositives asResult: #truePositives.
+	measurements
+		incrementResult: #truePositives , key capitalized
+		withAmount: truePositives size.
+
+	"False Positives"
+	falsePositives := smartTestSelection difference: testsInOracle.
+	logger logTests: falsePositives asResult: #falsePositives.
+	measurements
+		incrementResult: #falsePositives , key capitalized
+		withAmount: falsePositives size.
+
+	"False Negatives"
+	falseNegatives := testsInOracle difference: smartTestSelection.
+	logger logTests: falseNegatives asResult: #falseNegatives.
+	measurements
+		incrementResult: #falseNegatives , key capitalized
+		withAmount: falseNegatives size.
+
+	"True Negatives"
+	trueNegatives := (self allTests difference: smartTestSelection)
+		difference: testsInOracle.
+	logger logTests: trueNegatives asResult: #trueNegatives.
+	measurements
+		incrementResult: #trueNegatives , key capitalized
+		withAmount: trueNegatives size
+]
+
+{ #category : #running }
+ExperimentLauncher >> resetResults [
 	smTResults
 		keysDo: [ :key | smTResults at: key put: IdentityDictionary new ].
-	oracle := IdentityDictionary new
+	oracle := IdentitySet new
 ]
 
 { #category : #running }
 ExperimentLauncher >> run [
 	| barLabel |
 	logger openlog.
+	logger logCSVHeader: measurements columnNames.
 	barLabel := 'SmartTest Experiment ('
 		, logger logFileReference basename , ')'.
-	logger logCSVHeader: measurements columnNames.
 	UIManager default
 		displayProgress: barLabel
 		from: 1
 		to: changeList size
 		during: [ :bar | self runAndIncrement: bar label: barLabel ].
-	logger logFinalResultsForFinders: smTFinders keys.
+	self recordEndOfExperiment.
 	measurements removeLastRowIfEmpty
 ]
 
@@ -1272,7 +1301,7 @@ ExperimentLauncher >> runChangeThenAnalysis [
 
 { #category : #running }
 ExperimentLauncher >> runSmartTestAnalysis [
-	self resetCollectingResults.
+	self resetResults.
 	measurements
 		initializeRow: self changeNumber
 		change: self currentMethodAffectedName
@@ -1282,6 +1311,20 @@ ExperimentLauncher >> runSmartTestAnalysis [
 		ifFalse: [ self runChangeThenAnalysis ].
 	logger logCSVRow: measurements lastRow values.
 	measurements startNewRow
+]
+
+{ #category : #'oracle creation' }
+ExperimentLauncher >> runTest: aTest withProxyOnCurrentMethod: proxyOnCurrentMethod [
+	| singleTestCaseSuite |
+	"Create test case"
+	singleTestCaseSuite := TestSuite
+		named: 'Single Test Case for ' , aTest selector.
+	singleTestCaseSuite addTest: aTest.
+
+	"Run test while proxy is installed"
+	[ proxyOnCurrentMethod install.
+	[ singleTestCaseSuite run ]
+		ensure: [ proxyOnCurrentMethod uninstall ] ] valueUnpreemptively
 ]
 
 { #category : #'actions-public' }
@@ -1302,9 +1345,9 @@ ExperimentLauncher >> terminate: aBoolean [
 
 { #category : #accessing }
 ExperimentLauncher >> testsInOracle [
-	^ IdentitySet
+	^ oracle	"IdentitySet
 		withAll:
-			(oracle at: currentEntry content methodAffected fullName ifAbsent: {})
+			(oracle at: currentEntry content methodAffected fullName ifAbsent: {})"
 ]
 
 { #category : #running }
