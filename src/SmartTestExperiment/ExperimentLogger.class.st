@@ -51,9 +51,10 @@ ExperimentLogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
 ExperimentLogger >> logAppliedCodeChange: aChange [
 	self
 		blankLine;
-		log: '** Code change applied: ' , aChange printString
+		log: '----- Code change applied  -----'
 			crBefore: true
-			indentation: 0
+			indentation: 0;
+		log: aChange printString crBefore: true indentation: 1
 ]
 
 { #category : #logging }
@@ -70,21 +71,9 @@ ExperimentLogger >> logCollection: aCollection [
 
 { #category : #logging }
 ExperimentLogger >> logCreatedTestcases: testCaseClasses [
-	self log: '** Created testCases >> ' crBefore: true indentation: 1.
-	self log: 'Testcases: ' crBefore: true indentation: 3.
+	self log: 'Created testCases:' crBefore: true indentation: 1.
+	self log: '' crBefore: true indentation: 2.
 	self logCollection: testCaseClasses
-]
-
-{ #category : #logging }
-ExperimentLogger >> logCreatedTestcases: testCaseClasses forClasses: classesUnderTest withResources: testResources [
-	self log: '** created testCases >> ' crBefore: true indentation: 1.
-	self log: 'Classes under test: ' crBefore: true indentation: 2.
-	self logCollection: classesUnderTest.
-	self log: 'Testcases: ' crBefore: true indentation: 2.
-	self logCollection: testCaseClasses.
-	self log: 'TestResources: ' crBefore: true indentation: 2.
-		self logCollection: testResources.
-
 ]
 
 { #category : #accessing }
@@ -105,13 +94,16 @@ ExperimentLogger >> logFileReference: aFileReference [
 
 { #category : #logging }
 ExperimentLogger >> logIgnoreCodeChange [
-	self log: 'Ignored code change' crBefore: true indentation: 0
+	self
+		log: '----- Ignored code change -----'
+		crBefore: true
+		indentation: 0
 ]
 
 { #category : #logging }
 ExperimentLogger >> logNoSmarttestAnalysis [
 	self
-		log: 'No smarttest analysis needed'
+		log: '----- No SmartTest analysis needed -----'
 		crBefore: true
 		indentation: 0
 ]
@@ -130,6 +122,8 @@ ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
 	aChange isEpMethodChange
 		ifFalse: [ ^ self ].
 	self
+		log: 'Source code:' crBefore: true indentation: 0;
+		separationLine;
 		log: aChange methodAffected sourceCode
 			crBefore: true
 			indentation: 0;
@@ -154,15 +148,17 @@ ExperimentLogger >> reopenLog [
 	logstream := logFileReference writeStream.
 	logstream setToEnd.
 	self
+		blankLine;
 		separationLine;
 		log: 'Log reopenning' crBefore: true indentation: 0;
-		separationLine
+		separationLine;
+		blankLine
 ]
 
 { #category : #'final logging' }
 ExperimentLogger >> separationLine [
 	self
-		log: '-------------------------------------------------------------------'
+		log: '--------------------------------------------------------------'
 		crBefore: true
 		indentation: 0
 ]

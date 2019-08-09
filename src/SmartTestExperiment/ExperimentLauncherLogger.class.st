@@ -25,14 +25,14 @@ ExperimentLauncherLogger >> log: aSymbol totalCodeChurn: aDictionary [
 ExperimentLauncherLogger >> logAnalysis: smartTestResults [
 	self
 		blankLine;
-		log: '** SmartTest analysis >> ' crBefore: true indentation: 0.
+		log: '----- SmartTest analysis -----' crBefore: true indentation: 0.
 	smartTestResults
 		keysAndValuesDo: [ :keyword :result | 
 			self
 				log: 'SmartTest selection: ' , (self symbolToString: keyword) , ':'
 				crBefore: true
-				indentation: 2.
-			self log: '' crBefore: true indentation: 4.
+				indentation: 1.
+			self log: '' crBefore: true indentation: 2.
 			self logCollection: result ].
 	smartTestResults size == 2
 		ifTrue: [ self logDifferenceBetween: smartTestResults ]
@@ -63,7 +63,7 @@ ExperimentLauncherLogger >> logCSVRow: values [
 { #category : #'results logging' }
 ExperimentLauncherLogger >> logCacheResetForFinder: aSymbol [
 	self
-		log: '** Cache Reset: ' , (self symbolToString: aSymbol)
+		log: '--> Cache Reset: ' , (self symbolToString: aSymbol)
 		crBefore: true
 		indentation: 1
 ]
@@ -82,14 +82,14 @@ ExperimentLauncherLogger >> logCacheSize: anInt for: aSymbol [
 ExperimentLauncherLogger >> logCacheUpdate [
 	self
 		blankLine;
-		log: '** Updating cache' crBefore: true indentation: 0
+		log: '----- Updating cache -----' crBefore: true indentation: 0
 ]
 
 { #category : #logging }
 ExperimentLauncherLogger >> logCreatedOracle: oracle [
 	self
-		log: '** Oracle:' crBefore: true indentation: 1;
-		log: '' crBefore: true indentation: 3;
+		log: 'Oracle:' crBefore: true indentation: 1;
+		log: '' crBefore: true indentation: 2;
 		logCollection: (oracle ifEmpty: [ {'No tests found'} ])
 ]
 
@@ -128,16 +128,16 @@ ExperimentLauncherLogger >> logFinalResults: aDictionaryOfResults ofFinder: aFin
 ExperimentLauncherLogger >> logPrecision: aSymbol [
 	self
 		blankLine;
-		log: ' ----- ' , 'Precision ' , aSymbol asString , ' ----- '
+		log: '----- ' , 'Precision ' , aSymbol asString , ' ----- '
 			crBefore: true
-			indentation: 2
+			indentation: 0
 ]
 
 { #category : #'analysis logging' }
 ExperimentLauncherLogger >> logStartOfOracleCreation [
 	self
 		blankLine;
-		log: '** Creating Oracle ' crBefore: true indentation: 0
+		log: '----- Oracle Creation -----' crBefore: true indentation: 0
 ]
 
 { #category : #'results logging' }
@@ -145,15 +145,12 @@ ExperimentLauncherLogger >> logTests: aSetOfMethodSelectors asResult: aSymbol [
 	| resultString |
 	resultString := self symbolToString: aSymbol.
 	aSetOfMethodSelectors isEmpty
-		ifTrue: [ self
-				log: 'No ' , resultString asLowercase
-				crBefore: true
-				indentation: 3 ]
+		ifTrue: [ self log: 'No ' , resultString crBefore: true indentation: 1 ]
 		ifFalse: [ self
-				log: resultString , ' >> ' , aSetOfMethodSelectors size printString
+				log: aSetOfMethodSelectors size printString , resultString , ':'
 				crBefore: true
-				indentation: 3.
-			self log: '' crBefore: true indentation: 4.
+				indentation: 1.
+			self log: '' crBefore: true indentation: 2.
 			self logCollection: aSetOfMethodSelectors ]
 ]
 

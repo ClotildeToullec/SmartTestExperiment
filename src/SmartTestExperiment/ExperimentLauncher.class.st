@@ -1072,6 +1072,7 @@ ExperimentLauncher >> manageBuildCache [
 	| ts |
 	logger logCacheUpdate.
 	self createTestcases.
+	logger blankLine.
 	ts := TestSuite new.
 	ts addTests: collectionOfTestSuites.
 	smTFinders
