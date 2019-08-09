@@ -81,7 +81,7 @@ TimeAndMemorySlave >> manageBuildCache [
 		valuesDo: [ :finder | 
 			timeToBuildCaches
 				add:
-					[ finder resetCacheUsing: ts forChange: currentEntry ]
+					[ finder resetCacheUsing: ts forChange: currentChange ]
 						timeToRunInMicroSeconds ]
 ]
 
@@ -121,7 +121,8 @@ TimeAndMemorySlave >> quitImage [
 { #category : #preparation }
 TimeAndMemorySlave >> recoverChange: aChangeNumber inDataset: datasetName [
 	dataSet := ApplicationDataSet perform: datasetName.	"recover my dataset informations"
-	currentEntry := dataSet changeAtPos: aChangeNumber
+	currentEntry := dataSet changeAtPos: aChangeNumber.
+	currentChange := currentEntry content
 ]
 
 { #category : #'experiment-report' }
@@ -170,7 +171,7 @@ TimeAndMemorySlave >> resetRow [
 		addAll:
 			{dataSet name.
 			self changeNumber.
-			currentEntry content methodAffected fullName asString}
+			currentChange methodAffected fullName asString}
 ]
 
 { #category : #preparation }

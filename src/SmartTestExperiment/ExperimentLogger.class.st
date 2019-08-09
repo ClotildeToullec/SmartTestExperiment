@@ -113,8 +113,8 @@ ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
 	self
 		blankLine;
 		log:
-			'------------------------- change ' , changeNumber asString
-				, ' -------------------------'
+			'-------------------------- change ' , changeNumber asString
+				, ' --------------------------'
 			crBefore: true
 			indentation: 0;
 		log: aChange printString crBefore: true indentation: 0;

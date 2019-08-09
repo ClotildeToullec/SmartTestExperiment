@@ -913,55 +913,46 @@ ExperimentLauncher >> changeList: aCollectionOfEpCodeChange [
 
 { #category : #private }
 ExperimentLauncher >> changeShouldBeApplied [
-	"Apply when
-		- not a protocol removal (WHY ?)
-		- not a monticello save or load
-		- not a methodModification, or if it is, that does not introduce a Halt.
-	"
-	
-	| epChange |
-	epChange := currentEntry content.
 	"Exclude protocol removal"
-	^ epChange class ~= EpProtocolRemoval
+	^ currentChange class ~= EpProtocolRemoval
 	"Exclude Monticello"
-		and: [ epChange isMonticelloVersionsLoad not
-		and: [ epChange isMonticelloVersionSave not
+		and: [ currentChange isMonticelloVersionsLoad not
+		and: [ currentChange isMonticelloVersionSave not
 	"Exclude method modification introducing an halt."
-		and: [ epChange isIntroducingAHalt not ] ] ]
+		and: [ currentChange isIntroducingAHalt not ] ] ]
 ]
 
 { #category : #private }
 ExperimentLauncher >> collectMeasurementsCodechurn [
 	"TECHNICAL DEBTH: This should be refctored onto EPCodeChange"
 
-	| linesOfCode epChange changeSymbol |
-	epChange := currentEntry content.
-	epChange isCodeChange
+	| linesOfCode changeSymbol |
+	currentChange isCodeChange
 		ifFalse: [ ^ self ].
-	epChange class = EpBehaviorCommentChange
-		ifTrue: [ linesOfCode := epChange newComment lineCount.
+	currentChange class = EpBehaviorCommentChange
+		ifTrue: [ linesOfCode := currentChange newComment lineCount.
 			changeSymbol := #linesModified ].
 
 	"4 ? What is this magic number ?"
-	epChange class = EpClassAddition
+	currentChange class = EpClassAddition
 		ifTrue: [ linesOfCode := 4.
 			changeSymbol := #linesAdded ].
-	epChange class = EpClassModification
+	currentChange class = EpClassModification
 		ifTrue: [ linesOfCode := 4.
 			changeSymbol := #linesModified ].
-	epChange class = EpClassRemoval
+	currentChange class = EpClassRemoval
 		ifTrue: [ linesOfCode := 4.
 			changeSymbol := #linesDeleted ].
-	epChange class = EpMethodAddition
-		ifTrue: [ linesOfCode := epChange sourceCode lineCount.
+	currentChange class = EpMethodAddition
+		ifTrue: [ linesOfCode := currentChange sourceCode lineCount.
 			changeSymbol := #linesAdded ].
-	epChange class = EpMethodModification
+	currentChange class = EpMethodModification
 		ifTrue: [ linesOfCode := self
-				calculateDiffBetween: epChange oldSourceCode
-				and: epChange newSourceCode.
+				calculateDiffBetween: currentChange oldSourceCode
+				and: currentChange newSourceCode.
 			changeSymbol := #linesModified ].
-	epChange class = EpMethodRemoval
-		ifTrue: [ linesOfCode := epChange sourceCode lineCount.
+	currentChange class = EpMethodRemoval
+		ifTrue: [ linesOfCode := currentChange sourceCode lineCount.
 			changeSymbol := #linesDeleted ].
 	changeSymbol
 		ifNotNil: [ measurements
@@ -981,13 +972,12 @@ ExperimentLauncher >> createOracle [
 
 { #category : #private }
 ExperimentLauncher >> currentChangeIsTestCaseChange [
-	| rc epChange |
-	epChange := currentEntry content.
+	| rc |
 	rc := nil.
-	epChange isEpClassChange
-		ifTrue: [ rc := epChange behaviorAffected realClass ].
-	epChange isEpMethodChange
-		ifTrue: [ rc := epChange methodAffected realClass ].
+	currentChange isEpClassChange
+		ifTrue: [ rc := currentChange behaviorAffected realClass ].
+	currentChange isEpMethodChange
+		ifTrue: [ rc := currentChange methodAffected realClass ].
 	^ rc isNil
 		ifTrue: [ false ]
 		ifFalse: [ rc isTestCase ]
@@ -995,12 +985,14 @@ ExperimentLauncher >> currentChangeIsTestCaseChange [
 
 { #category : #accessing }
 ExperimentLauncher >> currentChangeType [
-	^ currentEntry content class name allButFirst: 2
+	"'EpMethodAddition' --> 'MethodAddition'"
+
+	^ currentChange class name allButFirst: 2
 ]
 
 { #category : #accessing }
 ExperimentLauncher >> currentMethodAffectedName [
-	^ currentEntry content methodAffected fullName
+	^ currentChange methodAffected fullName
 ]
 
 { #category : #running }
@@ -1033,6 +1025,7 @@ ExperimentLauncher >> loadAndIncrement: bar [
 	changeList
 		do: [ :anOmEntry | 
 			currentEntry := anOmEntry.
+			currentChange := currentChange content.
 			self changeShouldBeApplied
 				ifTrue: [ self processChange ].
 			bar increment ]
@@ -1183,7 +1176,7 @@ ExperimentLauncher >> prepare: removePackagesFirst [
 { #category : #'oracle creation' }
 ExperimentLauncher >> proxyOnCurrentMethod [
 	| currentMethod |
-	currentMethod := currentEntry content methodAffected compiledMethod
+	currentMethod := currentChange methodAffected compiledMethod
 		methodReference.
 	^ HDTestCoverage new initializeOn: currentMethod
 ]
@@ -1290,8 +1283,9 @@ ExperimentLauncher >> runAndIncrement: bar label: barLabel [
 	changeList
 		do: [ :anOmEntry | 
 			currentEntry := anOmEntry.
+			currentChange := currentEntry content.
 			logger
-				logStartOfCodeChange: currentEntry content
+				logStartOfCodeChange: currentChange
 				number: self changeNumber.
 			self updateBar: bar label: barLabel.
 			self decideChangeApplication.

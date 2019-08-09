@@ -18,7 +18,8 @@ Class {
 		'smTResults',
 		'smTFinders',
 		'packages',
-		'currentEntry'
+		'currentEntry',
+		'currentChange'
 	],
 	#category : #'SmartTestExperiment-analysis'
 }
@@ -163,7 +164,7 @@ AbstractSmartTestExperiment >> changeIsConcernedByProject: epChange [
 
 { #category : #private }
 AbstractSmartTestExperiment >> changeMustBePerformedAfterAnalysis [
-	^ currentEntry content class = EpMethodRemoval
+	^ currentChange class = EpMethodRemoval
 ]
 
 { #category : #accessing }
@@ -193,15 +194,9 @@ AbstractSmartTestExperiment >> createTestcases [
 	logger logCreatedTestcases: testCaseClasses
 ]
 
-{ #category : #accessing }
-AbstractSmartTestExperiment >> currentEntry [
-	^ currentEntry
-]
-
 { #category : #initialization }
 AbstractSmartTestExperiment >> initialize [
 	super initialize.
-	currentEntry := nil.
 	logger := ExperimentLauncherLogger new
 ]
 
@@ -250,19 +245,16 @@ AbstractSmartTestExperiment >> performAnalysis [
 { #category : #analysis }
 AbstractSmartTestExperiment >> performAnalysis: aSymbol [
 	^ ((smTFinders at: aSymbol)
-		researchTestsForMethod: currentEntry content methodAffected compiledMethod)
+		researchTestsForMethod: currentChange methodAffected compiledMethod)
 		collect: [ :method | method fullName ]
 ]
 
 { #category : #private }
 AbstractSmartTestExperiment >> processChange [
-	currentEntry content isCodeChange
-		ifTrue: [
-			logger logAppliedCodeChange: currentEntry content.
-			currentEntry content applyCodeChange ]
-		ifFalse: [ logger logIgnoreCodeChange ].
-
-
+	currentChange isCodeChange
+		ifTrue: [ logger logAppliedCodeChange: currentChange.
+			currentChange applyCodeChange ]
+		ifFalse: [ logger logIgnoreCodeChange ]
 ]
 
 { #category : #private }
