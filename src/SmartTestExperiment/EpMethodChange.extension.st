@@ -4,3 +4,8 @@ Extension { #name : #EpMethodChange }
 EpMethodChange >> isProtocolChangePriorToDeletion [
 	^ false
 ]
+
+{ #category : #'*SmartTestExperiment' }
+EpMethodChange >> numberOfAffectedLines [
+	^ self subclassResponsibility
+]

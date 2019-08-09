@@ -11,3 +11,8 @@ EpMethodAddition >> isIntroducingAHalt [
 EpMethodAddition >> newSourceCode [
 	^ self sourceCode
 ]
+
+{ #category : #'*SmartTestExperiment' }
+EpMethodAddition >> numberOfAffectedLines [
+	^ self sourceCode lineCount
+]

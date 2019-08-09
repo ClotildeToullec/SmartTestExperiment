@@ -924,16 +924,15 @@ ExperimentLauncher >> changeShouldBeApplied [
 
 { #category : #private }
 ExperimentLauncher >> collectMeasurementsCodechurn [
-	"TECHNICAL DEBTH: This should be refctored onto EPCodeChange"
-
-	| linesOfCode changeSymbol |
+	| changeSymbol |
 	currentChange isCodeChange
 		ifFalse: [ ^ self ].
-	currentChange class = EpBehaviorCommentChange
+		
+		"	currentChange class = EpBehaviorCommentChange
 		ifTrue: [ linesOfCode := currentChange newComment lineCount.
 			changeSymbol := #linesModified ].
 
-	"4 ? What is this magic number ?"
+	""4 ? What is this magic number ? The number of lines in a class definition ?""
 	currentChange class = EpClassAddition
 		ifTrue: [ linesOfCode := 4.
 			changeSymbol := #linesAdded ].
@@ -942,22 +941,18 @@ ExperimentLauncher >> collectMeasurementsCodechurn [
 			changeSymbol := #linesModified ].
 	currentChange class = EpClassRemoval
 		ifTrue: [ linesOfCode := 4.
-			changeSymbol := #linesDeleted ].
+			changeSymbol := #linesDeleted ]."
+		
 	currentChange class = EpMethodAddition
-		ifTrue: [ linesOfCode := currentChange sourceCode lineCount.
-			changeSymbol := #linesAdded ].
+		ifTrue: [ changeSymbol := #linesAdded ].
 	currentChange class = EpMethodModification
-		ifTrue: [ linesOfCode := self
-				calculateDiffBetween: currentChange oldSourceCode
-				and: currentChange newSourceCode.
-			changeSymbol := #linesModified ].
+		ifTrue: [ changeSymbol := #linesModified ].
 	currentChange class = EpMethodRemoval
-		ifTrue: [ linesOfCode := currentChange sourceCode lineCount.
-			changeSymbol := #linesDeleted ].
+		ifTrue: [ changeSymbol := #linesDeleted ].
 	changeSymbol
 		ifNotNil: [ measurements
 				incrementChange: changeSymbol
-				withAmount: linesOfCode
+				withAmount: currentChange numberOfAffectedLines
 				inTest: self currentChangeIsTestCaseChange ].
 	^ self
 ]
@@ -972,15 +967,12 @@ ExperimentLauncher >> createOracle [
 
 { #category : #private }
 ExperimentLauncher >> currentChangeIsTestCaseChange [
-	| rc |
-	rc := nil.
-	currentChange isEpClassChange
-		ifTrue: [ rc := currentChange behaviorAffected realClass ].
-	currentChange isEpMethodChange
-		ifTrue: [ rc := currentChange methodAffected realClass ].
-	^ rc isNil
-		ifTrue: [ false ]
-		ifFalse: [ rc isTestCase ]
+	| class |
+	class := currentChange isEpBehaviorChange
+		ifTrue: [ currentChange behaviorAffected realClass ]
+		ifFalse: [ currentChange isEpMethodChange
+				ifTrue: [ currentChange methodAffected realClass ] ].
+	^ class isNotNil and: [ class isTestCase ]
 ]
 
 { #category : #accessing }
@@ -996,7 +988,7 @@ ExperimentLauncher >> currentMethodAffectedName [
 ]
 
 { #category : #running }
-ExperimentLauncher >> decideChangeApplication [
+ExperimentLauncher >> decideAnalysis [
 	(self smartTestInterventionNeeded: currentEntry)
 		ifTrue: [ self runSmartTestAnalysis ]
 		ifFalse: [ self noSmartTestAnalysis ]
@@ -1025,7 +1017,7 @@ ExperimentLauncher >> loadAndIncrement: bar [
 	changeList
 		do: [ :anOmEntry | 
 			currentEntry := anOmEntry.
-			currentChange := currentChange content.
+			currentChange := currentEntry content.
 			self changeShouldBeApplied
 				ifTrue: [ self processChange ].
 			bar increment ]
@@ -1289,7 +1281,7 @@ ExperimentLauncher >> runAndIncrement: bar label: barLabel [
 				logStartOfCodeChange: currentChange
 				number: self changeNumber.
 			self updateBar: bar label: barLabel.
-			self decideChangeApplication.
+			self decideAnalysis.
 			bar increment ]
 ]
 

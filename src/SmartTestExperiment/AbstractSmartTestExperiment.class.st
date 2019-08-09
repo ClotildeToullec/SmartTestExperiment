@@ -201,19 +201,22 @@ AbstractSmartTestExperiment >> initialize [
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> isSystemWideMethod: epChange [
+AbstractSmartTestExperiment >> isCollectionMethod: epChange [
 	| chgClass |
-	(#(#new #initialize) includes: epChange methodAffected selector)
-		ifTrue: [ ^ true ].
-
-	"not a Collection method either ..."
 	chgClass := epChange methodAffected methodClass.
 	chgClass ifNil: [ ^ false ].	"sometimes the change creates a method for an unexisting class ..."
 	chgClass isTrait
-		ifTrue: [ ^ false ].	"not Traits in collections and would polluate following code"
+		ifTrue: [ ^ false ].	"not Traits in collections and would pollute the following code"
 	epChange methodAffected isMetaSide
 		ifTrue: [ chgClass := chgClass instanceSide ].
 	^ chgClass inheritsFrom: Collection
+]
+
+{ #category : #private }
+AbstractSmartTestExperiment >> isSystemWideMethod: epChange [
+	(#(#new #initialize) includes: epChange methodAffected selector)
+		ifTrue: [ ^ true ].
+	^ self isCollectionMethod: epChange
 ]
 
 { #category : #accessing }
