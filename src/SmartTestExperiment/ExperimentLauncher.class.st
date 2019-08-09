@@ -266,7 +266,7 @@ ExperimentLauncher class >> resetPackagesInSystem [
 
 { #category : #'instance creation' }
 ExperimentLauncher class >> resultsFormat [
-	^ IdentityDictionary new
+	^ IdentitySet new
 ]
 
 { #category : #private }
@@ -1043,7 +1043,11 @@ ExperimentLauncher >> logTimeSavings [
 	"This method is strange : Runs the tests found for every EpChange but always stores the result in the last measurements row, so the previous results are erased.
 	If we want to keep all runtimes, we should do it during the esperiment run and not at the end.
 	If we only want the total, no need to store the results in measurements."
+
 	| time reduced smarttestAdvice |
+	self
+		flag:
+			'This method should probably be removed, as time measurements is done by TAMExperiment'.
 	smTResults
 		keysAndValuesDo: [ :key :results | 
 			smarttestAdvice := IdentitySet new.
@@ -1066,6 +1070,7 @@ ExperimentLauncher >> manageAnalysis [
 { #category : #analysis }
 ExperimentLauncher >> manageBuildCache [
 	| ts |
+	logger logCacheUpdate.
 	self createTestcases.
 	ts := TestSuite new.
 	ts addTests: collectionOfTestSuites.
@@ -1076,12 +1081,15 @@ ExperimentLauncher >> manageBuildCache [
 			finder emptyCache.
 			finder currentCache = previousCache
 				ifFalse: [ self recordCacheReset: key ].
-			finder currentCache ifEmpty: [ finder buildCacheFromTestSuite: ts ] ]
+			finder currentCache ifEmpty: [ finder buildCacheFromTestSuite: ts ].
+			logger
+				logCacheSize: (self cacheSize: (smTFinders at: key))
+				for: key ]
 ]
 
 { #category : #'oracle creation' }
 ExperimentLauncher >> manageBuildOracle [
-	logger log: '** creating Oracle ' crBefore: true indentation: 1.
+	logger logStartOfOracleCreation.
 	self createTestcases.	"Because applying change may have added/removed/changed a test"
 	self createOracle.
 	logger logCreatedOracle: oracle
@@ -1099,8 +1107,11 @@ ExperimentLauncher >> measurePrecision [
 		keysAndValuesDo: [ :key :results | 
 			| smartTestSelection |
 			smartTestSelection := IdentitySet new
-				addAll: (results values flattened intersection: self allTests);
+				addAll: (results intersection: self allTests);
 				yourself.
+			self
+				flag:
+					'Why this inteserction ? Previous implementation said "temporary hack".'.
 			self recordResults: smartTestSelection for: key ]
 ]
 
@@ -1150,11 +1161,7 @@ ExperimentLauncher >> performAnalysis [
 ExperimentLauncher >> performAnalysis: aSymbol [
 	smTResults
 		at: aSymbol
-		at: currentEntry content
-		put: (super performAnalysis: aSymbol).
-	logger
-		logCacheSize: (self cacheSize: (smTFinders at: aSymbol))
-		for: aSymbol
+		put: (super performAnalysis: aSymbol) asIdentitySet
 ]
 
 { #category : #'actions-public' }
@@ -1242,8 +1249,7 @@ ExperimentLauncher >> recordResults: smartTestSelection for: key [
 
 { #category : #running }
 ExperimentLauncher >> resetResults [
-	smTResults
-		keysDo: [ :key | smTResults at: key put: IdentityDictionary new ].
+	smTResults keysDo: [ :key | smTResults at: key put: IdentitySet new ].
 	oracle := IdentitySet new
 ]
 

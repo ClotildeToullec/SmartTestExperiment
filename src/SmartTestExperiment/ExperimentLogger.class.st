@@ -50,9 +50,10 @@ ExperimentLogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
 { #category : #logging }
 ExperimentLogger >> logAppliedCodeChange: aChange [
 	self
+		blankLine;
 		log: '** Code change applied: ' , aChange printString
-		crBefore: true
-		indentation: 0
+			crBefore: true
+			indentation: 0
 ]
 
 { #category : #logging }
@@ -69,10 +70,9 @@ ExperimentLogger >> logCollection: aCollection [
 
 { #category : #logging }
 ExperimentLogger >> logCreatedTestcases: testCaseClasses [
-	self log: '** created testCases >> ' crBefore: true indentation: 0.
-	self log: 'Testcases: ' crBefore: true indentation: 2.
-	self logCollection: testCaseClasses.
-
+	self log: '** Created testCases >> ' crBefore: true indentation: 1.
+	self log: 'Testcases: ' crBefore: true indentation: 3.
+	self logCollection: testCaseClasses
 ]
 
 { #category : #logging }
@@ -105,12 +105,15 @@ ExperimentLogger >> logFileReference: aFileReference [
 
 { #category : #logging }
 ExperimentLogger >> logIgnoreCodeChange [
-	self log: 'Ignored code change' crBefore: true indentation: 1
+	self log: 'Ignored code change' crBefore: true indentation: 0
 ]
 
 { #category : #logging }
 ExperimentLogger >> logNoSmarttestAnalysis [
-	self log: 'No smarttest analysis needed' crBefore: true indentation: 1
+	self
+		log: 'No smarttest analysis needed'
+		crBefore: true
+		indentation: 0
 ]
 
 { #category : #logging }

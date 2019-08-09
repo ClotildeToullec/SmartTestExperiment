@@ -23,17 +23,17 @@ ExperimentLauncherLogger >> log: aSymbol totalCodeChurn: aDictionary [
 
 { #category : #'analysis logging' }
 ExperimentLauncherLogger >> logAnalysis: smartTestResults [
-	self log: '** SmartTest analysis >> ' crBefore: true indentation: 1.
+	self
+		blankLine;
+		log: '** SmartTest analysis >> ' crBefore: true indentation: 0.
 	smartTestResults
 		keysAndValuesDo: [ :keyword :result | 
 			self
 				log: 'SmartTest selection: ' , (self symbolToString: keyword) , ':'
 				crBefore: true
 				indentation: 2.
-			result
-				keysDo: [ :aCollectionOfMethodReferences | 
-					self log: '' crBefore: true indentation: 4.
-					self logCollection: aCollectionOfMethodReferences ] ].
+			self log: '' crBefore: true indentation: 4.
+			self logCollection: result ].
 	smartTestResults size == 2
 		ifTrue: [ self logDifferenceBetween: smartTestResults ]
 ]
@@ -65,7 +65,7 @@ ExperimentLauncherLogger >> logCacheResetForFinder: aSymbol [
 	self
 		log: '** Cache Reset: ' , (self symbolToString: aSymbol)
 		crBefore: true
-		indentation: 2
+		indentation: 1
 ]
 
 { #category : #logging }
@@ -79,10 +79,18 @@ ExperimentLauncherLogger >> logCacheSize: anInt for: aSymbol [
 ]
 
 { #category : #logging }
+ExperimentLauncherLogger >> logCacheUpdate [
+	self
+		blankLine;
+		log: '** Updating cache' crBefore: true indentation: 0
+]
+
+{ #category : #logging }
 ExperimentLauncherLogger >> logCreatedOracle: oracle [
-	self log: '** Oracle creation: ' crBefore: true indentation: 2.
-	self log: '' crBefore: true indentation: 3.
-	self logCollection: (oracle ifEmpty: [ {'No tests found'} ])
+	self
+		log: '** Oracle:' crBefore: true indentation: 1;
+		log: '' crBefore: true indentation: 3;
+		logCollection: (oracle ifEmpty: [ {'No tests found'} ])
 ]
 
 { #category : #'analysis logging' }
@@ -123,6 +131,13 @@ ExperimentLauncherLogger >> logPrecision: aSymbol [
 		log: ' ----- ' , 'Precision ' , aSymbol asString , ' ----- '
 			crBefore: true
 			indentation: 2
+]
+
+{ #category : #'analysis logging' }
+ExperimentLauncherLogger >> logStartOfOracleCreation [
+	self
+		blankLine;
+		log: '** Creating Oracle ' crBefore: true indentation: 0
 ]
 
 { #category : #'results logging' }
