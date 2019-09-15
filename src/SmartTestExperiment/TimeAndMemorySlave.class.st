@@ -16,7 +16,7 @@ Class {
 	#classInstVars : [
 		'runningExperiment'
 	],
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #accessing }

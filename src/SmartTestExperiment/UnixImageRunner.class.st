@@ -1,7 +1,10 @@
+"
+The ImageRunner subclass used by TimeAndMemoryExperiment
+"
 Class {
 	#name : #UnixImageRunner,
 	#superclass : #ImageRunner,
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #'launching images' }

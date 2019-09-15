@@ -1,7 +1,7 @@
 Class {
 	#name : #CommandLineTimeExpeUpdater,
 	#superclass : #CommandLineHandler,
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #accessing }

@@ -1,6 +1,6 @@
 Extension { #name : #SmTCacheStrategy }
 
 { #category : #'*SmartTestExperiment' }
-SmTCacheStrategy >> isFlexible [
+SmTCacheStrategy >> isAdaptive [
 	^ false
 ]

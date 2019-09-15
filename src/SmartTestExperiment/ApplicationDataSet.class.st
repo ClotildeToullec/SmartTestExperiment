@@ -14,7 +14,7 @@ Class {
 		'ombuEntries',
 		'packages'
 	],
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #'instance creation' }
@@ -194,7 +194,7 @@ ApplicationDataSet >> name: anObject [
 { #category : #private }
 ApplicationDataSet >> ombuEntriesFromFile: ombFile [
 	"conveniance method to call the AbstractSmartTestExperiment one"
-	^ AbstractSmartTestExperiment ombuEntriesFromFile: ombFile
+	^ AbstractSTExperiment ombuEntriesFromFile: ombFile
 ]
 
 { #category : #accessing }

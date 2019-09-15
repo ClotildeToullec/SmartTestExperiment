@@ -14,11 +14,11 @@ This is done by the 3 subclasses: TimeAndMemoryMaster is the main one. It random
 "
 Class {
 	#name : #TimeAndMemoryExperiment,
-	#superclass : #AbstractSmartTestExperiment,
+	#superclass : #AbstractSTExperiment,
 	#instVars : [
 		'csvFilename'
 	],
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #accessing }
@@ -68,6 +68,11 @@ TimeAndMemoryExperiment >> eraseCSV: aBoolean [
 				ifTrue: [ file delete ]
 				ifFalse: [ ^ self ] ].
 	self createCSVHeader
+]
+
+{ #category : #analysis }
+TimeAndMemoryExperiment >> manageBuildCache [
+	self subclassResponsibility
 ]
 
 { #category : #processes }

@@ -6,7 +6,7 @@ This class serves both as master (launches each dataset base image to update it)
 Class {
 	#name : #TimeAndMemoryImageUpdater,
 	#superclass : #TimeAndMemoryExperiment,
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #operations }
@@ -23,6 +23,11 @@ TimeAndMemoryImageUpdater class >> updateAll [
 { #category : #operations }
 TimeAndMemoryImageUpdater class >> updateAllOf: datasetsSymbols [
 	self new updateAllOf: datasetsSymbols
+]
+
+{ #category : #analysis }
+TimeAndMemoryImageUpdater >> manageBuildCache [
+	self subclassResponsibility
 ]
 
 { #category : #'running slave' }

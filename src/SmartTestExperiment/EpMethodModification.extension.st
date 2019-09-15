@@ -14,12 +14,12 @@ EpMethodModification >> isProtocolChangePriorToDeletion [
 
 { #category : #'*SmartTestExperiment' }
 EpMethodModification >> numberOfAffectedLines [
-	"This is not very elegant: we do not know if the result represents lines deletion, modification or addition"
+	"This is too simple: we do not know if the result represents lines deletion, modification or addition"
 
 	| oldLines newLines |
 	oldLines := self oldSourceCode lines.
 	newLines := self newSourceCode lines.
-	^ oldLines <= newLines
+	^ oldLines size <= newLines size
 		ifTrue: [ (newLines \ oldLines) size ]
 		ifFalse: [ (oldLines \ newLines) size ]
 ]

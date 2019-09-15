@@ -22,8 +22,8 @@ Internal Representation and Key Implementation Points.
 ... to be done
 "
 Class {
-	#name : #ExperimentLauncher,
-	#superclass : #AbstractSmartTestExperiment,
+	#name : #STExperimentLauncher,
+	#superclass : #AbstractSTExperiment,
 	#instVars : [
 		'changeList',
 		'oracle',
@@ -35,11 +35,11 @@ Class {
 		'intermediateSave',
 		'packagesInSystem'
 	],
-	#category : #'SmartTestExperiment-analysis'
+	#category : #'SmartTestExperiment-Analysis'
 }
 
 { #category : #scenarios }
-ExperimentLauncher class >> dryrunTestScenarioCurrentPheme [
+STExperimentLauncher class >> dryrunTestScenarioCurrentPheme [
 	"self dryrunTestScenarioCurrentPheme"
 
 	| el |
@@ -55,22 +55,19 @@ ExperimentLauncher class >> dryrunTestScenarioCurrentPheme [
 ]
 
 { #category : #exporting }
-ExperimentLauncher class >> exportToCSV: fileName [
+STExperimentLauncher class >> exportToCSV: fileName [
 	| stream fileReference |
 	fileReference := fileName asFileReference.
 	fileReference exists
 		ifTrue: [ fileReference delete ].
 	stream := fileName asFileReference writeStream.
-
-	[
-		1 to: (lastRuns size) do: [ :i |
-			(lastRuns at: i) exportToCSVStream: stream withHeader: (i = 1)
-		]
-	] ensure: [ stream close ]
+	[ lastRuns
+		withIndexDo: [ :run :i | run exportToCSVStream: stream withHeader: i = 1 ] ]
+		ensure: [ stream close ]
 ]
 
 { #category : #utilities }
-ExperimentLauncher class >> fixOmbuFileNamed: aFileName [
+STExperimentLauncher class >> fixOmbuFileNamed: aFileName [
 	"Some Epicea files contain little quirks which hamper or even prevent launching a SmartTest experiment. This method goes over an epicea change file, fixes the issues and then overwrites the file so that future experimemt runs will go smoothly"
 
 	"self fixOmbuFileNamed: 'PharoLANTest.ombu'"
@@ -94,21 +91,21 @@ ExperimentLauncher class >> fixOmbuFileNamed: aFileName [
 ]
 
 { #category : #accessing }
-ExperimentLauncher class >> intermediateSave [
+STExperimentLauncher class >> intermediateSave [
 	"self intermediateSave"
 <script>
 	^ intermediateSave
 ]
 
 { #category : #accessing }
-ExperimentLauncher class >> intermediateSave: anExperimentLauncher [
+STExperimentLauncher class >> intermediateSave: anExperimentLauncher [
 	"self intermediateSave: self lastRun"
 	
 	intermediateSave := anExperimentLauncher
 ]
 
 { #category : #accessing }
-ExperimentLauncher class >> lastRun [
+STExperimentLauncher class >> lastRun [
 	lastRuns isNotEmpty
 	ifTrue: [ ^ lastRuns last ]
 	ifFalse: [  ^ nil ]
@@ -116,7 +113,7 @@ ExperimentLauncher class >> lastRun [
 ]
 
 { #category : #accessing }
-ExperimentLauncher class >> lastRunAt: anInt [
+STExperimentLauncher class >> lastRunAt: anInt [
 	lastRuns size >= anInt
 	ifTrue: [ ^ lastRuns at: anInt ]
 	ifFalse: [  ^ nil ]
@@ -124,7 +121,7 @@ ExperimentLauncher class >> lastRunAt: anInt [
 ]
 
 { #category : #utilities }
-ExperimentLauncher class >> loadChangesIn: ombuFilename [
+STExperimentLauncher class >> loadChangesIn: ombuFilename [
 	| changeList |
 	changeList := (self ombuEntriesFromFile: ombuFilename asFileReference) asOrderedCollection.
 	UIManager default
@@ -142,7 +139,7 @@ ExperimentLauncher class >> loadChangesIn: ombuFilename [
 ]
 
 { #category : #utilities }
-ExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: endNumber [
+STExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: endNumber [
 
 	(self ombuEntriesFromFile: ombuFilename asFileReference) asOrderedCollection do: [ :ombChg |
 		( ( (startNumber to: endNumber) includes: ((ombChg tagAt: #self) localName asInteger) )
@@ -152,7 +149,7 @@ ExperimentLauncher class >> loadChangesIn: ombuFilename from: startNumber to: en
 ]
 
 { #category : #private }
-ExperimentLauncher class >> logFileName: aProjectName number: i [
+STExperimentLauncher class >> logFileName: aProjectName number: i [
 	^ String
 		streamContents: [ :stream | 
 			stream
@@ -165,7 +162,7 @@ ExperimentLauncher class >> logFileName: aProjectName number: i [
 ]
 
 { #category : #private }
-ExperimentLauncher class >> ombuFileName: aProjectName number: i [
+STExperimentLauncher class >> ombuFileName: aProjectName number: i [
 	^ String
 		streamContents: [ :stream | 
 			stream
@@ -179,7 +176,7 @@ ExperimentLauncher class >> ombuFileName: aProjectName number: i [
 ]
 
 { #category : #private }
-ExperimentLauncher class >> ombuFilesInProject: aProjectName [
+STExperimentLauncher class >> ombuFilesInProject: aProjectName [
 	| files |
 	files := (self rootDir , aProjectName , '/ombu-sessions/')
 		asFileReference files select: [ :file | file extension = 'ombu' ].
@@ -189,15 +186,7 @@ ExperimentLauncher class >> ombuFilesInProject: aProjectName [
 ]
 
 { #category : #'instance creation' }
-ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames [
-	"self onOmbuFiles: {
-		'ForwardChainer/ForwardChainer2.ombu' .
-		'ForwardChainer/ForwardChainer3.ombu' .
-		'ForwardChainer/ForwardChainer4.ombu' .
-		'ForwardChainer/ForwardChainer5.ombu' .
-		} logFileName: 'ForwardChainer_LOG'
-	withPackages: {#IABasic . #ConfigurationOfCloudforkAWS}"
-
+STExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames [
 	| logfileRef changes fileRef |
 	changes := OrderedCollection new.
 	aListOfFileNames
@@ -205,7 +194,7 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 			fileRef := fileName asFileReference.
 			fileRef exists
 				ifTrue:
-					[ changes addAll: (self ombuEntriesFromFile: fileName asFileReference)	" collect: [ :om | om content ]" ] ].
+					[ changes addAll: (self ombuEntriesFromFile: fileName asFileReference) ] ].
 	logfileRef := aLogFileName asFileReference.
 	lastRuns
 		add:
@@ -218,7 +207,7 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 ]
 
 { #category : #'instance creation' }
-ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames withFinders: aSmartFindersDictionary [
+STExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileName withPackages: packageNames withFinders: aSmartFindersDictionary [
 	| logfileRef changes fileRef |
 	changes := OrderedCollection new.
 	aListOfFileNames
@@ -226,7 +215,7 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 			fileRef := fileName asFileReference.
 			fileRef exists
 				ifTrue:
-					[ changes addAll: (self ombuEntriesFromFile: fileName asFileReference)	" collect: [ :om | om content ]" ] ].
+					[ changes addAll: (self ombuEntriesFromFile: fileName asFileReference) ] ].
 	logfileRef := aLogFileName asFileReference.
 	lastRuns
 		add:
@@ -239,7 +228,7 @@ ExperimentLauncher class >> onOmbuFiles: aListOfFileNames logFileName: aLogFileN
 ]
 
 { #category : #private }
-ExperimentLauncher class >> packagesToAnalyzeInFiles: files [
+STExperimentLauncher class >> packagesToAnalyzeInFiles: files [
 	| packagesInFiles |
 	packagesInFiles := OmbuFilesOrganizer new packagesInFiles: files.
 	packagesInSystem := packagesInSystem
@@ -247,41 +236,41 @@ ExperimentLauncher class >> packagesToAnalyzeInFiles: files [
 	^ (packagesInFiles \ packagesInSystem) asArray
 ]
 
-{ #category : #LANSimulationExp }
-ExperimentLauncher class >> reopenLastResults [
+{ #category : #visualization }
+STExperimentLauncher class >> reopenLastResults [
 	<script>
 	self allInstances last visualizeResults
 ]
 
 { #category : #'instance creation' }
-ExperimentLauncher class >> resetLastRun [
+STExperimentLauncher class >> resetLastRun [
 	"self resetLastRun"
 	lastRuns := OrderedCollection new
 ]
 
 { #category : #private }
-ExperimentLauncher class >> resetPackagesInSystem [
+STExperimentLauncher class >> resetPackagesInSystem [
 	packagesInSystem := RPackageOrganizer default packageNames
 ]
 
 { #category : #'instance creation' }
-ExperimentLauncher class >> resultsFormat [
+STExperimentLauncher class >> resultsFormat [
 	^ IdentitySet new
 ]
 
 { #category : #private }
-ExperimentLauncher class >> rootDir [
+STExperimentLauncher class >> rootDir [
 	^ '/home/clotilde/Documents/Stage/Projets/'
 ]
 
 { #category : #LANSimulationExp }
-ExperimentLauncher class >> runEntireLANSimulationExp [
+STExperimentLauncher class >> runEntireLANSimulationExp [
 	<script>
 	self runScenario: 'LANSimulation' withFinders: self ungenericFinders
 ]
 
 { #category : #FamixExp }
-ExperimentLauncher class >> runFamixExpOnFile: anOmbuFileNumber [
+STExperimentLauncher class >> runFamixExpOnFile: anOmbuFileNumber [
 	| files packages el ombFile logFile |
 	EpMonitor current disable.
 	files := self ombuFilesInProject: 'Famix'.
@@ -304,7 +293,7 @@ ExperimentLauncher class >> runFamixExpOnFile: anOmbuFileNumber [
 ]
 
 { #category : #'generic experiment' }
-ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
+STExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
 	"Packages will not be erased before experiment"
 
 	| files |
@@ -317,7 +306,7 @@ ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName [
 ]
 
 { #category : #'generic experiment' }
-ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
+STExperimentLauncher class >> runKeepingPackagesScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
 	"One experiment for each ombu file.	Packages will not be erased before experiment"
 
 	| el |
@@ -339,7 +328,7 @@ ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName ombuFiles: 
 ]
 
 { #category : #'generic experiment' }
-ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName withFinders: smartFindersDictionary [
+STExperimentLauncher class >> runKeepingPackagesScenario: aProjectName withFinders: smartFindersDictionary [
 	"Packages will not be erased before experiment"
 
 	| files |
@@ -352,7 +341,7 @@ ExperimentLauncher class >> runKeepingPackagesScenario: aProjectName withFinders
 ]
 
 { #category : #LANSimulationExp }
-ExperimentLauncher class >> runLANSimulationExpOnSecondFile [
+STExperimentLauncher class >> runLANSimulationExpOnSecondFile [
 	<script>
 	| el ombFile logFile |
 	EpMonitor current disable.
@@ -374,7 +363,7 @@ ExperimentLauncher class >> runLANSimulationExpOnSecondFile [
 ]
 
 { #category : #'generic experiment' }
-ExperimentLauncher class >> runScenario: aProjectName [
+STExperimentLauncher class >> runScenario: aProjectName [
 	"Erase package before the first experiment"
 
 	| files |
@@ -387,7 +376,7 @@ ExperimentLauncher class >> runScenario: aProjectName [
 ]
 
 { #category : #'generic experiment' }
-ExperimentLauncher class >> runScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
+STExperimentLauncher class >> runScenario: aProjectName ombuFiles: fileNumbers packages: aPackagesCollection withFinders: aSmartFindersDictionary [
 	"One experiment for each ombu file. Erase package before the first experiment"
 
 	| el firstFile |
@@ -411,7 +400,7 @@ ExperimentLauncher class >> runScenario: aProjectName ombuFiles: fileNumbers pac
 ]
 
 { #category : #'generic experiment' }
-ExperimentLauncher class >> runScenario: aProjectName withFinders: smartFindersDictionary [
+STExperimentLauncher class >> runScenario: aProjectName withFinders: smartFindersDictionary [
 	"Erase package before the first experiment"
 
 	| files |
@@ -424,7 +413,7 @@ ExperimentLauncher class >> runScenario: aProjectName withFinders: smartFindersD
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runScenarioPillar [
+STExperimentLauncher class >> runScenarioPillar [
 	"self runScenarioPillar"
 
 	self runScenarioPillar: {  '3' . '4' . '5' . '6'. '7' . '8' . '9' . '10' . '11' . '12'. '13' . '14' . '16' . '17' . '18'. '19' . '20' . '21' . '22' . '24'. '25' . '27' . '28' . '29' . '30'  }
@@ -432,7 +421,7 @@ ExperimentLauncher class >> runScenarioPillar [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runScenarioPillar: aCollection [
+STExperimentLauncher class >> runScenarioPillar: aCollection [
 	"self runScenarioPillar: (1 to: 9)"
 
 	| el |
@@ -465,12 +454,12 @@ ExperimentLauncher class >> runScenarioPillar: aCollection [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runScenarioPostgreSQL [
+STExperimentLauncher class >> runScenarioPostgreSQL [
 	self runScenarioPostgreSQL: (1 to: 4)
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
+STExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
 	| el |
 
 	self resetLastRun.
@@ -490,7 +479,7 @@ ExperimentLauncher class >> runScenarioPostgreSQL: aCollection [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioDataFrame [
+STExperimentLauncher class >> runTestScenarioDataFrame [
 	<script>
 	| files packages |
 	"Need for Roassal3-Examples for changes 17 & 18 of 2nd ombu file."
@@ -512,13 +501,13 @@ ExperimentLauncher class >> runTestScenarioDataFrame [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioDebuggableASTInterpreter [
+STExperimentLauncher class >> runTestScenarioDebuggableASTInterpreter [
 	<script>
 	self runKeepingPackagesScenario: 'DebuggableASTInterpreter'
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioDebuggableASTInterpreterExpFirstFile [
+STExperimentLauncher class >> runTestScenarioDebuggableASTInterpreterExpFirstFile [
 	<script>
 	| el ombFile logFile |
 	EpMonitor current disable.
@@ -539,13 +528,13 @@ ExperimentLauncher class >> runTestScenarioDebuggableASTInterpreterExpFirstFile 
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioFamix [
+STExperimentLauncher class >> runTestScenarioFamix [
 	<script>
 	self runKeepingPackagesScenario: 'Famix'
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioFast [
+STExperimentLauncher class >> runTestScenarioFast [
 	<script>
 	| files packages el ombFile logFile |
 	EpMonitor current disable.
@@ -569,7 +558,7 @@ ExperimentLauncher class >> runTestScenarioFast [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioForwardChainerEx [
+STExperimentLauncher class >> runTestScenarioForwardChainerEx [
 	"self runTestScenarioForwardChainerEx"
 
 	| el |
@@ -591,20 +580,20 @@ ExperimentLauncher class >> runTestScenarioForwardChainerEx [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioMeleeSim [
+STExperimentLauncher class >> runTestScenarioMeleeSim [
 	<script>
 	self runScenario: 'MeleeSim'
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioMooseQuery [
+STExperimentLauncher class >> runTestScenarioMooseQuery [
 	"self runTestScenarioMooseQuery"
 
 	self runTestScenarioMooseQuery: (1 to: 3)
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioMooseQuery: aCollection [
+STExperimentLauncher class >> runTestScenarioMooseQuery: aCollection [
 	"self runTestScenarioMooseQuery: #( 1 2 3 )"
 
 	| el |
@@ -629,13 +618,13 @@ ExperimentLauncher class >> runTestScenarioMooseQuery: aCollection [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioPheme [
+STExperimentLauncher class >> runTestScenarioPheme [
 	"self runTestScenarioPheme"
 	self runTestScenarioPheme: (1 to: 4)
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioPheme: aCollection [
+STExperimentLauncher class >> runTestScenarioPheme: aCollection [
 	"self runTestScenarioPheme: (1 to: 4)"
 
 	| el phemeName |
@@ -657,7 +646,7 @@ ExperimentLauncher class >> runTestScenarioPheme: aCollection [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioPolyMath [
+STExperimentLauncher class >> runTestScenarioPolyMath [
 	<script>
 	| files packages |
 	files := self ombuFilesInProject: 'PolyMath'.
@@ -673,7 +662,7 @@ ExperimentLauncher class >> runTestScenarioPolyMath [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTestScenarioTDD [
+STExperimentLauncher class >> runTestScenarioTDD [
 	"Bug at change 314. Unknown classes"
 
 	<script>
@@ -681,13 +670,13 @@ ExperimentLauncher class >> runTestScenarioTDD [
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTextScenarioTFIDF [
+STExperimentLauncher class >> runTextScenarioTFIDF [
 	<script>
 	self runScenario: 'TF-IDF'
 ]
 
 { #category : #scenarios }
-ExperimentLauncher class >> runTextScenarioTinyBlog [
+STExperimentLauncher class >> runTextScenarioTinyBlog [
 	"Affected packages are widely used."
 
 	<script>
@@ -695,27 +684,27 @@ ExperimentLauncher class >> runTextScenarioTinyBlog [
 ]
 
 { #category : #utilities }
-ExperimentLauncher class >> saveImage [
+STExperimentLauncher class >> saveImage [
 	Smalltalk garbageCollect.
 	(Delay forSeconds: 5) wait.  "take a break before saving image to avoid bug that could corrupt it"
 	SmalltalkImage current snapshot: true andQuit: false
 ]
 
 { #category : #accessing }
-ExperimentLauncher class >> saveIntermediately [
+STExperimentLauncher class >> saveIntermediately [
 	<script>
 	self intermediateSave: self lastRun.
 	^intermediateSave 
 ]
 
-{ #category : #LANSimulationExp }
-ExperimentLauncher class >> showResultsAsPieCharts [
+{ #category : #visualization }
+STExperimentLauncher class >> showResultsAsPieCharts [
 	<script>
 	self allInstances last visualizePieChartResults
 ]
 
 { #category : #utilities }
-ExperimentLauncher class >> sortOmbuFilesIn: aDirectoryName [
+STExperimentLauncher class >> sortOmbuFilesIn: aDirectoryName [
 	"Some projects store a whole suite of epicea sessions and a series of onbu files. Epicea relies on the time stamps on these files to sort them but these are not reliable when they are reconstructed from git, previous epicea sessions etc. That is why we go over all epicea files in a directory and take the first entry -- these contain reliable time stamps"
 
 	"self sortOmbuFilesIn: 'MooseQuery'"
@@ -744,7 +733,7 @@ ExperimentLauncher class >> sortOmbuFilesIn: aDirectoryName [
 ]
 
 { #category : #utilities }
-ExperimentLauncher class >> sortPillarFiles [
+STExperimentLauncher class >> sortPillarFiles [
 	"The ombu files created during the refactoring session were generated from git and the timestamps on the files were botched. This is an attempt to recreate the sort order baed on the internal timestamps"
 
 	"self sortPillarFiles"
@@ -816,47 +805,15 @@ ExperimentLauncher class >> sortPillarFiles [
 	^ org collect: [ :twoElements | twoElements at: 1 ]
 ]
 
-{ #category : #utilities }
-ExperimentLauncher class >> timedRun: aScenarioSelector csvBaseFileName: aFileName [
-	"self timedRun: #runTestScenario csvBaseFileName: 'PharoLanTest'"
-
-	| stopwatch |
-	self flag: 'Generated by Eleonore: Remove use of xxDynamic and use a Set instead and a generic method'.
-	self assert: (aScenarioSelector isKindOf: Symbol).
-	self assert: (self respondsTo: aScenarioSelector).
-	Transcript clear.
-	stopwatch := Stopwatch new activate.
-	Transcript
-		show: 'Launching ...';
-		show: stopwatch printString.
-	stopwatch start.
-	self
-		includeStaticAnalysis: true;
-		includeDynamicAnalysis: false.
-	self perform: aScenarioSelector.
-	self lastRun measurements exportToCSV: aFileName , '_STATIC.csv'.
-	self saveIntermediately.
-	self
-		includeStaticAnalysis: false;
-		includeDynamicAnalysis: true.
-	self perform: aScenarioSelector.
-	self lastRun measurements exportToCSV: aFileName , '_DYNAMIC.csv'.
-	stopwatch end.
-	Transcript
-		cr;
-		show: 'Terminating ...';
-		show: stopwatch printString
-]
-
 { #category : #'oracle creation' }
-ExperimentLauncher >> addToOracle: aTest [
+STExperimentLauncher >> addToOracle: aTest [
 	oracle
 		add:
 			(aTest class lookupSelector: aTest selector) methodReference fullName
 ]
 
 { #category : #'oracle creation' }
-ExperimentLauncher >> addToOracleIfAffected: aTest [
+STExperimentLauncher >> addToOracleIfAffected: aTest [
 	| proxy |
 	proxy := self proxyOnCurrentMethod.
 	self runTest: aTest withProxyOnCurrentMethod: proxy.
@@ -865,7 +822,7 @@ ExperimentLauncher >> addToOracleIfAffected: aTest [
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> allTests [
+STExperimentLauncher >> allTests [
 	| allTests |
 	allTests := IdentitySet new.
 	collectionOfTestSuites
@@ -877,17 +834,18 @@ ExperimentLauncher >> allTests [
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> cacheSize: smartFinder [
-		| cacheSize |
+STExperimentLauncher >> cacheSizeOf: smartFinder [
+	| cacheSize |
 	cacheSize := smartFinder currentCache sizeInMemory.
-	smartFinder currentCache keysAndValuesDo: [ :key :value | cacheSize := cacheSize + key sizeInMemory + value sizeInMemory ].
+	smartFinder currentCache
+		keysAndValuesDo:
+			[ :key :value | cacheSize := cacheSize + key sizeInMemory + value sizeInMemory ].
 	cacheSize := (cacheSize + 511) // 1024.	"Convert to kilo-bytes rounded up"
-	self measurements cacheSize: cacheSize.
 	^ cacheSize
 ]
 
 { #category : #private }
-ExperimentLauncher >> calculateDiffBetween: oldString and: newString [
+STExperimentLauncher >> calculateDiffBetween: oldString and: newString [
 	| diff diffLineCount |
 	diffLineCount := 0.
 	diff := TextDiffBuilder from: oldString to: newString.
@@ -901,18 +859,18 @@ ExperimentLauncher >> calculateDiffBetween: oldString and: newString [
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> changeList [
+STExperimentLauncher >> changeList [
 	^ changeList
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> changeList: aCollectionOfEpCodeChange [
+STExperimentLauncher >> changeList: aCollectionOfEpCodeChange [
 	aCollectionOfEpCodeChange assert: aCollectionOfEpCodeChange isSequenceable description: 'Expected a collection for #changeList:'.
 	changeList := aCollectionOfEpCodeChange
 ]
 
 { #category : #private }
-ExperimentLauncher >> changeShouldBeApplied [
+STExperimentLauncher >> changeShouldBeApplied [
 	"Exclude protocol removal"
 	^ currentChange class ~= EpProtocolRemoval
 	"Exclude Monticello"
@@ -922,43 +880,8 @@ ExperimentLauncher >> changeShouldBeApplied [
 		and: [ currentChange isIntroducingAHalt not ] ] ]
 ]
 
-{ #category : #private }
-ExperimentLauncher >> collectMeasurementsCodechurn [
-	| changeSymbol |
-	currentChange isCodeChange
-		ifFalse: [ ^ self ].
-		
-		"	currentChange class = EpBehaviorCommentChange
-		ifTrue: [ linesOfCode := currentChange newComment lineCount.
-			changeSymbol := #linesModified ].
-
-	""4 ? What is this magic number ? The number of lines in a class definition ?""
-	currentChange class = EpClassAddition
-		ifTrue: [ linesOfCode := 4.
-			changeSymbol := #linesAdded ].
-	currentChange class = EpClassModification
-		ifTrue: [ linesOfCode := 4.
-			changeSymbol := #linesModified ].
-	currentChange class = EpClassRemoval
-		ifTrue: [ linesOfCode := 4.
-			changeSymbol := #linesDeleted ]."
-		
-	currentChange class = EpMethodAddition
-		ifTrue: [ changeSymbol := #linesAdded ].
-	currentChange class = EpMethodModification
-		ifTrue: [ changeSymbol := #linesModified ].
-	currentChange class = EpMethodRemoval
-		ifTrue: [ changeSymbol := #linesDeleted ].
-	changeSymbol
-		ifNotNil: [ measurements
-				incrementChange: changeSymbol
-				withAmount: currentChange numberOfAffectedLines
-				inTest: self currentChangeIsTestCaseChange ].
-	^ self
-]
-
 { #category : #'oracle creation' }
-ExperimentLauncher >> createOracle [
+STExperimentLauncher >> createOracle [
 	collectionOfTestSuites
 		do: [ :aTestSuite | 
 			aTestSuite flatCollectTests
@@ -966,7 +889,7 @@ ExperimentLauncher >> createOracle [
 ]
 
 { #category : #private }
-ExperimentLauncher >> currentChangeIsTestCaseChange [
+STExperimentLauncher >> currentChangeIsTestCaseChange [
 	| class |
 	class := currentChange isEpBehaviorChange
 		ifTrue: [ currentChange behaviorAffected realClass ]
@@ -976,44 +899,44 @@ ExperimentLauncher >> currentChangeIsTestCaseChange [
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> currentChangeType [
+STExperimentLauncher >> currentChangeType [
 	"'EpMethodAddition' --> 'MethodAddition'"
 
 	^ currentChange class name allButFirst: 2
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> currentMethodAffectedName [
+STExperimentLauncher >> currentMethodAffectedName [
 	^ currentChange methodAffected fullName
 ]
 
 { #category : #running }
-ExperimentLauncher >> decideAnalysis [
+STExperimentLauncher >> decideAnalysis [
 	(self smartTestInterventionNeeded: currentEntry)
 		ifTrue: [ self runSmartTestAnalysis ]
 		ifFalse: [ self noSmartTestAnalysis ]
 ]
 
 { #category : #exporting }
-ExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
+STExperimentLauncher >> exportToCSVStream: stream withHeader: aBoolean [
 	measurements exportToCSVStream: stream withHeader: aBoolean
 ]
 
 { #category : #initialization }
-ExperimentLauncher >> initialize [
+STExperimentLauncher >> initialize [
 	super initialize.
 	changeList := {}.
 	oracle := IdentitySet new.
-	measurements := ExperimentLauncherMeasurements new: smTFinders keys
+	measurements := STEMeasurements new: smTFinders keys
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> keys [
+STExperimentLauncher >> keys [
 	^ smTFinders keys
 ]
 
 { #category : #'no analysis' }
-ExperimentLauncher >> loadAndIncrement: bar [
+STExperimentLauncher >> loadAndIncrement: bar [
 	changeList
 		do: [ :anOmEntry | 
 			currentEntry := anOmEntry.
@@ -1023,37 +946,43 @@ ExperimentLauncher >> loadAndIncrement: bar [
 			bar increment ]
 ]
 
-{ #category : #logging }
-ExperimentLauncher >> logTimeSavings [
-	"This method is strange : Runs the tests found for every EpChange but always stores the result in the last measurements row, so the previous results are erased.
-	If we want to keep all runtimes, we should do it during the esperiment run and not at the end.
-	If we only want the total, no need to store the results in measurements."
+{ #category : #running }
+STExperimentLauncher >> logEndOfExperiment [
+	2 timesRepeat: [ logger separationLine ].
+	smTFinders
+		keysDo: [ :symbol | 
+			logger
+				logFinalResults: (measurements totalResultsForFinder: symbol)
+				ofFinder: symbol ].
+	logger separationLine.
+	#(false true)
+		do: [ :inTests | 
+			logger
+				logTotalChanges: (measurements totalChangesInTests: inTests)
+				affectedLines: (measurements totalAffectedLinesInTests: inTests)
+				inTests: inTests ]
+]
 
-	| time reduced smarttestAdvice |
-	self
-		flag:
-			'This method should probably be removed, as time measurements is done by TAMExperiment'.
+{ #category : #logging }
+STExperimentLauncher >> logTimeSavings [
 	smTResults
-		keysAndValuesDo: [ :key :results | 
-			smarttestAdvice := IdentitySet new.
-			results
-				keysAndValuesDo:
-					[ :anEpChange :aCollectionOfMethodReferences | smarttestAdvice addAll: aCollectionOfMethodReferences ].
-			reduced := self createTestSuite: smarttestAdvice.
+		keysAndValuesDo: [ :key :tests | 
+			| testSuite timeToRun |
+			testSuite := self createTestSuite: tests.
 			Smalltalk garbageCollect.
-			time := [ reduced run ] timeToRun.
-			"logger logTime: time forFinder: key."
-			self measurements setTestTime: time forFinder: key ]
+			timeToRun := [ testSuite run ] timeToRun.
+			logger logTime: timeToRun forFinder: key.
+			self measurements at: #testTime , key capitalized put: timeToRun ]
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> manageAnalysis [
+STExperimentLauncher >> manageAnalysis [
 	self performAnalysis.
 	self measurePrecision
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> manageBuildCache [
+STExperimentLauncher >> manageBuildCache [
 	| ts |
 	logger logCacheUpdate.
 	self createTestcases.
@@ -1065,16 +994,13 @@ ExperimentLauncher >> manageBuildCache [
 			| previousCache |
 			previousCache := finder currentCache copy.
 			finder emptyCache.
-			finder currentCache = previousCache
-				ifFalse: [ self recordCacheReset: key ].
+			self recordCacheReset: finder currentCache = previousCache for: key.
 			finder currentCache ifEmpty: [ finder buildCacheFromTestSuite: ts ].
-			logger
-				logCacheSize: (self cacheSize: (smTFinders at: key))
-				for: key ]
+			self recordCacheSizeOf: key ]
 ]
 
 { #category : #'oracle creation' }
-ExperimentLauncher >> manageBuildOracle [
+STExperimentLauncher >> manageBuildOracle [
 	logger logStartOfOracleCreation.
 	self createTestcases.	"Because applying change may have added/removed/changed a test"
 	self createOracle.
@@ -1082,13 +1008,23 @@ ExperimentLauncher >> manageBuildOracle [
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> manageChange [
+STExperimentLauncher >> manageChange [
 	self processChange.
-	self collectMeasurementsCodechurn.
+	self measureCodeChurn.
+]
+
+{ #category : #private }
+STExperimentLauncher >> measureCodeChurn [
+	"This method is called only if the current change is analyzed - so is an EpMethodChange. See #smartTestInterventionNeeded:"
+
+	self
+		assert: currentChange isEpMethodChange
+		description: 'Code churn is measured only for an EpMethodModification'.
+	measurements affectedLines: currentChange numberOfAffectedLines
 ]
 
 { #category : #logging }
-ExperimentLauncher >> measurePrecision [
+STExperimentLauncher >> measurePrecision [
 	smTResults
 		keysAndValuesDo: [ :key :results | 
 			| smartTestSelection |
@@ -1097,24 +1033,24 @@ ExperimentLauncher >> measurePrecision [
 				yourself.
 			self
 				flag:
-					'Why this inteserction ? Previous implementation said "temporary hack".'.
+					'Why this intersection ? Previous implementation said "temporary hack".'.
 			self recordResults: smartTestSelection for: key ]
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> measurements [
+STExperimentLauncher >> measurements [
 	^ measurements 
 ]
 
 { #category : #running }
-ExperimentLauncher >> noSmartTestAnalysis [
+STExperimentLauncher >> noSmartTestAnalysis [
 	logger logNoSmarttestAnalysis.
 	self changeShouldBeApplied
 		ifTrue: [ self processChange ]
 ]
 
 { #category : #'no analysis' }
-ExperimentLauncher >> onlyApplyChanges [
+STExperimentLauncher >> onlyApplyChanges [
 	| barLabel |
 	barLabel := 'SmartTest Experiment: Loading project'.
 	UIManager default
@@ -1125,12 +1061,12 @@ ExperimentLauncher >> onlyApplyChanges [
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> packages [
+STExperimentLauncher >> packages [
 	^ packages
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> packages: aCollectionOfCategoryNames [
+STExperimentLauncher >> packages: aCollectionOfCategoryNames [
 	aCollectionOfCategoryNames
 		assert: aCollectionOfCategoryNames isSequenceable
 		description: 'Expected a collection for #packages:'.
@@ -1138,25 +1074,25 @@ ExperimentLauncher >> packages: aCollectionOfCategoryNames [
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> performAnalysis [
+STExperimentLauncher >> performAnalysis [
 	super performAnalysis.
 	logger logAnalysis: smTResults
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> performAnalysis: aSymbol [
+STExperimentLauncher >> performAnalysis: aSymbol [
 	smTResults
 		at: aSymbol
 		put: (super performAnalysis: aSymbol) asIdentitySet
 ]
 
 { #category : #'actions-public' }
-ExperimentLauncher >> prepare [
+STExperimentLauncher >> prepare [
 	self prepare: true
 ]
 
 { #category : #'actions-public' }
-ExperimentLauncher >> prepare: removePackagesFirst [
+STExperimentLauncher >> prepare: removePackagesFirst [
 	removePackagesFirst
 		ifTrue: [ self packages
 				do: [ :pckgName | 
@@ -1166,7 +1102,7 @@ ExperimentLauncher >> prepare: removePackagesFirst [
 ]
 
 { #category : #'oracle creation' }
-ExperimentLauncher >> proxyOnCurrentMethod [
+STExperimentLauncher >> proxyOnCurrentMethod [
 	| currentMethod |
 	currentMethod := currentChange methodAffected compiledMethod
 		methodReference.
@@ -1174,73 +1110,54 @@ ExperimentLauncher >> proxyOnCurrentMethod [
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> recordCacheReset: key [
-	logger logCacheResetForFinder: key.
-	measurements
-		incrementResult: #cacheReset , key capitalized
-		withAmount: 1
+STExperimentLauncher >> recordCacheReset: reset for: key [
+	reset
+		ifFalse: [ logger logCacheResetForFinder: key.
+			measurements at: key at: #cacheReset put: true ]
+		ifTrue: [ measurements at: key at: #cacheReset put: false ]
 ]
 
-{ #category : #running }
-ExperimentLauncher >> recordEndOfExperiment [
-	2 timesRepeat: [ logger separationLine ].
-	smTFinders
-		keysDo: [ :symbol | 
-			logger
-				logFinalResults: (measurements totalResultsForFinder: symbol)
-				ofFinder: symbol ].
-	logger separationLine.
-	#(source test)
-		do: [ :symbol | 
-			logger
-				log: symbol
-				totalCodeChurn: (measurements totalCodeChurn: symbol) ]
+{ #category : #analysis }
+STExperimentLauncher >> recordCacheSizeOf: aSymbol [
+	| cacheSize |
+	cacheSize := self cacheSizeOf: (smTFinders at: aSymbol).
+	logger logCacheSize: cacheSize for: aSymbol.
+	^ self measurements at: aSymbol at: #cacheSize put: cacheSize
 ]
 
 { #category : #logging }
-ExperimentLauncher >> recordResults: smartTestSelection for: key [
-	| testsInOracle truePositives falsePositives falseNegatives trueNegatives |
-	testsInOracle := self testsInOracle.
+STExperimentLauncher >> recordResults: smartTestSelection for: key [
+	| results |
 	logger logPrecision: key.
-
-	"True Positives"
-	truePositives := smartTestSelection intersection: testsInOracle.
-	logger logTests: truePositives asResult: #truePositives.
-	measurements
-		incrementResult: #truePositives , key capitalized
-		withAmount: truePositives size.
-
-	"False Positives"
-	falsePositives := smartTestSelection difference: testsInOracle.
-	logger logTests: falsePositives asResult: #falsePositives.
-	measurements
-		incrementResult: #falsePositives , key capitalized
-		withAmount: falsePositives size.
-
-	"False Negatives"
-	falseNegatives := testsInOracle difference: smartTestSelection.
-	logger logTests: falseNegatives asResult: #falseNegatives.
-	measurements
-		incrementResult: #falseNegatives , key capitalized
-		withAmount: falseNegatives size.
-
-	"True Negatives"
-	trueNegatives := (self allTests difference: smartTestSelection)
-		difference: testsInOracle.
-	logger logTests: trueNegatives asResult: #trueNegatives.
-	measurements
-		incrementResult: #trueNegatives , key capitalized
-		withAmount: trueNegatives size
+	results := Dictionary new.
+	results
+		at: #truePositives put: (smartTestSelection intersection: oracle);
+		at: #falsePositives put: (smartTestSelection difference: oracle);
+		at: #falseNegatives put: (oracle difference: smartTestSelection);
+		at: #trueNegatives
+			put:
+			((self allTests difference: smartTestSelection) difference: oracle).
+	results
+		keysAndValuesDo: [ :precision :tests | 
+			logger logTests: tests asResult: precision.
+			measurements at: key at: precision put: tests size ]
 ]
 
 { #category : #running }
-ExperimentLauncher >> resetResults [
+STExperimentLauncher >> resetResults [
 	smTResults keysDo: [ :key | smTResults at: key put: IdentitySet new ].
 	oracle := IdentitySet new
 ]
 
 { #category : #running }
-ExperimentLauncher >> run [
+STExperimentLauncher >> resolveAnalysisOrder [
+	self changeMustBePerformedAfterAnalysis
+		ifTrue: [ self runAnalysisThenChange ]
+		ifFalse: [ self runChangeThenAnalysis ]
+]
+
+{ #category : #running }
+STExperimentLauncher >> run [
 	| barLabel |
 	logger openlog.
 	logger logCSVHeader: measurements columnNames.
@@ -1251,19 +1168,18 @@ ExperimentLauncher >> run [
 		from: 1
 		to: changeList size
 		during: [ :bar | self runAndIncrement: bar label: barLabel ].
-	self recordEndOfExperiment.
-	measurements removeLastRowIfEmpty
+	self logEndOfExperiment
 ]
 
 { #category : #'actions-public' }
-ExperimentLauncher >> run: aBoolean [
+STExperimentLauncher >> run: aBoolean [
 	aBoolean
 		ifTrue: [ self run ]
 		ifFalse: [ self onlyApplyChanges ]
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> runAnalysisThenChange [
+STExperimentLauncher >> runAnalysisThenChange [
 	self manageBuildCache.
 	self manageBuildOracle.
 	self manageAnalysis.
@@ -1271,7 +1187,7 @@ ExperimentLauncher >> runAnalysisThenChange [
 ]
 
 { #category : #running }
-ExperimentLauncher >> runAndIncrement: bar label: barLabel [
+STExperimentLauncher >> runAndIncrement: bar label: barLabel [
 	changeList
 		do: [ :anOmEntry | 
 			self resetResults.
@@ -1286,7 +1202,7 @@ ExperimentLauncher >> runAndIncrement: bar label: barLabel [
 ]
 
 { #category : #analysis }
-ExperimentLauncher >> runChangeThenAnalysis [
+STExperimentLauncher >> runChangeThenAnalysis [
 	self manageBuildCache.
 	self manageChange.
 	self manageBuildOracle.
@@ -1294,20 +1210,18 @@ ExperimentLauncher >> runChangeThenAnalysis [
 ]
 
 { #category : #running }
-ExperimentLauncher >> runSmartTestAnalysis [
-	measurements
-		initializeRow: self changeNumber
+STExperimentLauncher >> runSmartTestAnalysis [
+	measurements newResult
+		id: self changeNumber
 		change: self currentMethodAffectedName
-		type: self currentChangeType.
-	self changeMustBePerformedAfterAnalysis
-		ifTrue: [ self runAnalysisThenChange ]
-		ifFalse: [ self runChangeThenAnalysis ].
-	logger logCSVRow: measurements lastRow values.
-	measurements startNewRow
+		changeType: self currentChangeType
+		inTest: self currentChangeIsTestCaseChange.
+	self resolveAnalysisOrder.
+	logger logCSVRow: measurements lastResult flattenedValues
 ]
 
 { #category : #'oracle creation' }
-ExperimentLauncher >> runTest: aTest withProxyOnCurrentMethod: proxyOnCurrentMethod [
+STExperimentLauncher >> runTest: aTest withProxyOnCurrentMethod: proxyOnCurrentMethod [
 	| singleTestCaseSuite |
 	"Create test case"
 	singleTestCaseSuite := TestSuite
@@ -1321,54 +1235,52 @@ ExperimentLauncher >> runTest: aTest withProxyOnCurrentMethod: proxyOnCurrentMet
 ]
 
 { #category : #'actions-public' }
-ExperimentLauncher >> terminate [
+STExperimentLauncher >> terminate [
 	logger closelog.
-	visualizer := ExperimentVisualizer new.
+	visualizer := STEVisualizer new.
 	visualizer
-		measurements: measurements rows;
+		results: measurements results;
 		analysesSymbols: smTFinders keys.
 	self visualizeResults
 ]
 
 { #category : #'actions-public' }
-ExperimentLauncher >> terminate: aBoolean [
+STExperimentLauncher >> terminate: aBoolean [
 	aBoolean
 		ifTrue: [ self terminate ]
 ]
 
-{ #category : #accessing }
-ExperimentLauncher >> testsInOracle [
-	^ oracle	"IdentitySet
-		withAll:
-			(oracle at: currentEntry content methodAffected fullName ifAbsent: {})"
-]
-
 { #category : #running }
-ExperimentLauncher >> updateBar: bar label: barLabel [
+STExperimentLauncher >> updateBar: bar label: barLabel [
 	bar label: barLabel , ' change:' , self changeNumber asString
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeComparison [
+STExperimentLauncher >> visualizeCacheSize [
+	visualizer visualiseCacheSizeOfAnalyses: smTFinders keys
+]
+
+{ #category : #visualization }
+STExperimentLauncher >> visualizeComparison [
 	visualizer compareAllPrecisionsOfAnalyses: smTFinders keys definition: 'Comparison between analyses'
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeFalseNegatives [
+STExperimentLauncher >> visualizeFalseNegatives [
 	visualizer
 		comparePrecision: #falseNegatives
 		ofAnalyses: smTFinders keys
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeFalsePositives [
+STExperimentLauncher >> visualizeFalsePositives [
 	visualizer
 		comparePrecision: #falsePositives
 		ofAnalyses: smTFinders keys
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeFalseResults [
+STExperimentLauncher >> visualizeFalseResults [
 	visualizer
 		comparePrecisions: #(#falsePositives #falseNegatives)
 		ofAnalyses: smTFinders keys
@@ -1376,32 +1288,35 @@ ExperimentLauncher >> visualizeFalseResults [
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizePieChartResults [
+STExperimentLauncher >> visualizePieChartResults [
 	visualizer pieChartsOfAnalyses: smTFinders keys
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeResults [
+STExperimentLauncher >> visualizeResults [
 	smTFinders
-		keysAndValuesDo: [ :key :finder | visualizer resultsOfAnalysis: key withTrueNegatives: true showCacheReset: (finder hasFlexibleCache ) ].
-	visualizer visualiseCodeChurnBarChart
+		keysAndValuesDo: [ :key :finder | 
+			visualizer
+				resultsOfAnalysis: key
+				withTrueNegatives: true
+				showCacheReset: finder hasAdaptiveCache ]
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeTrueNegatives [
+STExperimentLauncher >> visualizeTrueNegatives [
 	visualizer
 		comparePrecision: #trueNegatives
 		ofAnalyses: smTFinders keys
 ]
 
 { #category : #visualization }
-ExperimentLauncher >> visualizeTruePositives [
+STExperimentLauncher >> visualizeTruePositives [
 	visualizer
 		comparePrecision: #truePositives
 		ofAnalyses: smTFinders keys
 ]
 
 { #category : #accessing }
-ExperimentLauncher >> visualizer [
+STExperimentLauncher >> visualizer [
 	^ visualizer 
 ]

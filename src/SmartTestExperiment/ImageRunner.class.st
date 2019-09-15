@@ -6,7 +6,7 @@ Adapted from the launcher
 Class {
 	#name : #ImageRunner,
 	#superclass : #Object,
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #'as yet unclassified' }

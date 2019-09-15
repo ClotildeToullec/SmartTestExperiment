@@ -1,14 +1,14 @@
 "
-Utility class for logging results
+Utility class for logging results of STExperimentLauncher
 "
 Class {
-	#name : #ExperimentLauncherLogger,
-	#superclass : #ExperimentLogger,
-	#category : #'SmartTestExperiment-reporting'
+	#name : #STExperimentLauncherLogger,
+	#superclass : #STELogger,
+	#category : #'SmartTestExperiment-Reporting'
 }
 
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> log: aSymbol totalCodeChurn: aDictionary [
+{ #category : #'logging-final' }
+STExperimentLauncherLogger >> log: aSymbol totalCodeChurn: aDictionary [
 	self
 		log: aSymbol asString capitalized , ' code : '
 		crBefore: true
@@ -21,8 +21,8 @@ ExperimentLauncherLogger >> log: aSymbol totalCodeChurn: aDictionary [
 				indentation: 1 ]
 ]
 
-{ #category : #'analysis logging' }
-ExperimentLauncherLogger >> logAnalysis: smartTestResults [
+{ #category : #'logging-analysis ' }
+STExperimentLauncherLogger >> logAnalysis: smartTestResults [
 	self
 		blankLine;
 		log: '----- SmartTest analysis -----' crBefore: true indentation: 0.
@@ -39,17 +39,17 @@ ExperimentLauncherLogger >> logAnalysis: smartTestResults [
 ]
 
 { #category : #csv }
-ExperimentLauncherLogger >> logCSVHeader: columnNames [
+STExperimentLauncherLogger >> logCSVHeader: columnNames [
 	self log: '"CSV"' crBefore: true indentation: 0.
 	columnNames do: [ :colName |
 		logstream
 			nextPut: $; ;
-			nextPutAll: (ExperimentLauncherMeasurements convertCamelcaseToTitle: colName)
+			nextPutAll: (STEMeasurements convertCamelcaseToTitle: colName)
 	]
 ]
 
 { #category : #csv }
-ExperimentLauncherLogger >> logCSVRow: values [
+STExperimentLauncherLogger >> logCSVRow: values [
 	self
 		blankLine;
 		log: '"CSV"' crBefore: true indentation: 0.
@@ -60,16 +60,16 @@ ExperimentLauncherLogger >> logCSVRow: values [
 				nextPutAll: value asString ]
 ]
 
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logCacheResetForFinder: aSymbol [
+{ #category : #'logging-results' }
+STExperimentLauncherLogger >> logCacheResetForFinder: aSymbol [
 	self
 		log: '--> Cache Reset: ' , (self symbolToString: aSymbol)
 		crBefore: true
 		indentation: 1
 ]
 
-{ #category : #logging }
-ExperimentLauncherLogger >> logCacheSize: anInt for: aSymbol [
+{ #category : #'logging-cache' }
+STExperimentLauncherLogger >> logCacheSize: anInt for: aSymbol [
 	self
 		log:
 			(self symbolToString: aSymbol) , ' cache size = ' , anInt printString
@@ -78,23 +78,23 @@ ExperimentLauncherLogger >> logCacheSize: anInt for: aSymbol [
 		indentation: 2
 ]
 
-{ #category : #logging }
-ExperimentLauncherLogger >> logCacheUpdate [
+{ #category : #'logging-cache' }
+STExperimentLauncherLogger >> logCacheUpdate [
 	self
 		blankLine;
 		log: '----- Updating cache -----' crBefore: true indentation: 0
 ]
 
-{ #category : #logging }
-ExperimentLauncherLogger >> logCreatedOracle: oracle [
+{ #category : #'logging-oracle' }
+STExperimentLauncherLogger >> logCreatedOracle: oracle [
 	self
 		log: 'Oracle:' crBefore: true indentation: 1;
 		log: '' crBefore: true indentation: 2;
 		logCollection: (oracle ifEmpty: [ {'No tests found'} ])
 ]
 
-{ #category : #'analysis logging' }
-ExperimentLauncherLogger >> logDifferenceBetween: smartTestResults [
+{ #category : #'logging-analysis ' }
+STExperimentLauncherLogger >> logDifferenceBetween: smartTestResults [
 	| difference |
 	difference := (smartTestResults values first) values
 		difference: (smartTestResults values second) values.
@@ -110,8 +110,8 @@ ExperimentLauncherLogger >> logDifferenceBetween: smartTestResults [
 			self logCollection: difference asSet flattened]
 ]
 
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> logFinalResults: aDictionaryOfResults ofFinder: aFinderSymbol [
+{ #category : #'logging-final' }
+STExperimentLauncherLogger >> logFinalResults: aDictionaryOfResults ofFinder: aFinderSymbol [
 	self
 		log: 'Total results ' , aFinderSymbol capitalized , ': '
 		crBefore: true
@@ -124,8 +124,8 @@ ExperimentLauncherLogger >> logFinalResults: aDictionaryOfResults ofFinder: aFin
 				indentation: 1 ]
 ]
 
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logPrecision: aSymbol [
+{ #category : #'logging-results' }
+STExperimentLauncherLogger >> logPrecision: aSymbol [
 	self
 		blankLine;
 		log: '----- ' , 'Precision ' , aSymbol asString , ' ----- '
@@ -133,15 +133,15 @@ ExperimentLauncherLogger >> logPrecision: aSymbol [
 			indentation: 0
 ]
 
-{ #category : #'analysis logging' }
-ExperimentLauncherLogger >> logStartOfOracleCreation [
+{ #category : #'logging-analysis ' }
+STExperimentLauncherLogger >> logStartOfOracleCreation [
 	self
 		blankLine;
 		log: '----- Oracle Creation -----' crBefore: true indentation: 0
 ]
 
-{ #category : #'results logging' }
-ExperimentLauncherLogger >> logTests: aSetOfMethodSelectors asResult: aSymbol [
+{ #category : #'logging-results' }
+STExperimentLauncherLogger >> logTests: aSetOfMethodSelectors asResult: aSymbol [
 	| resultString |
 	resultString := self symbolToString: aSymbol.
 	aSetOfMethodSelectors isEmpty
@@ -154,8 +154,8 @@ ExperimentLauncherLogger >> logTests: aSetOfMethodSelectors asResult: aSymbol [
 			self logCollection: aSetOfMethodSelectors ]
 ]
 
-{ #category : #'execution time' }
-ExperimentLauncherLogger >> logTime: aDuration forFinder: aSymbol [
+{ #category : #'logging-execution time' }
+STExperimentLauncherLogger >> logTime: aDuration forFinder: aSymbol [
 	self
 		log:
 			(self symbolToString: aSymbol) , ' test time = '
@@ -164,18 +164,18 @@ ExperimentLauncherLogger >> logTime: aDuration forFinder: aSymbol [
 		indentation: 2
 ]
 
-{ #category : #'final logging' }
-ExperimentLauncherLogger >> symbolToString: aSymbol [
-	"Utility -- Should not be here -- Twin method in Visualizer:
-	 #aSymbolToBeTransformed --> 'A Symbol To Be Transformed' "
-
-	| stream |
-	stream := WriteStream with: ''.
-	stream << aSymbol asString first asUppercase.
-	aSymbol asString allButFirst
-		do: [ :char | 
-			char isUppercase
-				ifTrue: [ stream space ].
-			stream << char ].
-	^ stream contents
+{ #category : #'logging-final' }
+STExperimentLauncherLogger >> logTotalChanges: changesAmount affectedLines: linesAmount inTests: aBoolean [
+	| title |
+	title := aBoolean
+		ifTrue: [ 'Test code' ]
+		ifFalse: [ 'Source code' ].
+	self
+		log: title crBefore: true indentation: 0;
+		log: changesAmount printString , ' changes'
+			crBefore: true
+			indentation: 1;
+		log: linesAmount printString , ' lines affected'
+			crBefore: true
+			indentation: 1
 ]

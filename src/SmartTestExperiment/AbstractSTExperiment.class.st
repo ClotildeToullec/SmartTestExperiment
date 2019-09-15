@@ -9,7 +9,7 @@ It contains:
 
 "
 Class {
-	#name : #AbstractSmartTestExperiment,
+	#name : #AbstractSTExperiment,
 	#superclass : #Object,
 	#instVars : [
 		'collectionOfTestSuites',
@@ -21,11 +21,11 @@ Class {
 		'currentEntry',
 		'currentChange'
 	],
-	#category : #'SmartTestExperiment-analysis'
+	#category : #'SmartTestExperiment-Analysis'
 }
 
 { #category : #finders }
-AbstractSmartTestExperiment class >> defaultFinders [
+AbstractSTExperiment class >> defaultFinders [
 	| smTFinders |
 	smTFinders := OrderedDictionary new.
 	smTFinders
@@ -45,7 +45,7 @@ AbstractSmartTestExperiment class >> defaultFinders [
 ]
 
 { #category : #utilities }
-AbstractSmartTestExperiment class >> methodRefAsTestCase: aMethodReference [
+AbstractSTExperiment class >> methodRefAsTestCase: aMethodReference [
 	"self methodRefAsTestCase: #'TestNetwork>>testHTMLPrint'"
 
 	"self methodRefAsTestCase: #'TestNetwork class>>testHTMLPrint'"
@@ -66,7 +66,7 @@ AbstractSmartTestExperiment class >> methodRefAsTestCase: aMethodReference [
 ]
 
 { #category : #'instance creation' }
-AbstractSmartTestExperiment class >> new [
+AbstractSTExperiment class >> new [
 	^ self basicNew
 		smTFinders: self defaultFinders;
 		smTResults:
@@ -78,7 +78,7 @@ AbstractSmartTestExperiment class >> new [
 ]
 
 { #category : #'instance creation' }
-AbstractSmartTestExperiment class >> new: aSmartFindersDictionary [
+AbstractSTExperiment class >> new: aSmartFindersDictionary [
 	"aSmartFindersDictionary: keys should be symbols and values should be SmartFinders"
 
 	aSmartFindersDictionary ifEmpty: [ ^ self new ].
@@ -96,12 +96,12 @@ AbstractSmartTestExperiment class >> new: aSmartFindersDictionary [
 ]
 
 { #category : #running }
-AbstractSmartTestExperiment class >> ombuEntriesFromFile: ombFile [
+AbstractSTExperiment class >> ombuEntriesFromFile: ombFile [
 	^ (EpLog freshFromFile: ombFile) entries
 ]
 
 { #category : #finders }
-AbstractSmartTestExperiment class >> reflectivityFinder [
+AbstractSTExperiment class >> reflectivityFinder [
 	| smTFinders |
 	smTFinders := OrderedDictionary new.
 	smTFinders
@@ -115,12 +115,12 @@ AbstractSmartTestExperiment class >> reflectivityFinder [
 ]
 
 { #category : #'instance creation' }
-AbstractSmartTestExperiment class >> resultsFormat [
+AbstractSTExperiment class >> resultsFormat [
 	self subclassResponsibility
 ]
 
 { #category : #finders }
-AbstractSmartTestExperiment class >> ungenericFinders [
+AbstractSTExperiment class >> ungenericFinders [
 	| smTFinders |
 	smTFinders := OrderedDictionary new.
 	smTFinders
@@ -158,32 +158,32 @@ AbstractSmartTestExperiment class >> ungenericFinders [
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> changeIsConcernedByProject: epChange [
+AbstractSTExperiment >> changeIsConcernedByProject: epChange [
 	^  self packages includes:  epChange affectedPackageName 
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> changeMustBePerformedAfterAnalysis [
+AbstractSTExperiment >> changeMustBePerformedAfterAnalysis [
 	^ currentChange class = EpMethodRemoval
 ]
 
 { #category : #accessing }
-AbstractSmartTestExperiment >> changeNumber [
+AbstractSTExperiment >> changeNumber [
 	^ (currentEntry tagAt: #self) localName
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> createTestSuite: aCollectionOfMethodReferences [
-	| reducedTestSuite aCollectionOfTestCases |
-	reducedTestSuite := TestSuite named: 'Test Suite from Method names'.
-	aCollectionOfTestCases := aCollectionOfMethodReferences
-		collect: [ :aMethodReference | self class methodRefAsTestCase: aMethodReference ].
-	aCollectionOfTestCases := aCollectionOfTestCases select: [ :tc | tc notNil ].
-	^ reducedTestSuite addTests: aCollectionOfTestCases
+AbstractSTExperiment >> createTestSuite: methodReferences [
+	| testSuite testCases |
+	testSuite := TestSuite named: 'Test Suite from Method names'.
+	testCases := methodReferences
+		collect: [ :methodReference | self class methodRefAsTestCase: methodReference ]
+		thenSelect: [ :testCase | testCase notNil ].
+	^ testSuite addTests: testCases
 ]
 
 { #category : #'actions-public' }
-AbstractSmartTestExperiment >> createTestcases [
+AbstractSTExperiment >> createTestcases [
 	| testCaseClasses |
 	testCaseClasses := self packages
 		flatCollect: [ :each | 
@@ -195,13 +195,13 @@ AbstractSmartTestExperiment >> createTestcases [
 ]
 
 { #category : #initialization }
-AbstractSmartTestExperiment >> initialize [
+AbstractSTExperiment >> initialize [
 	super initialize.
-	logger := ExperimentLauncherLogger new
+	logger := STExperimentLauncherLogger new
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> isCollectionMethod: epChange [
+AbstractSTExperiment >> isCollectionMethod: epChange [
 	| chgClass |
 	chgClass := epChange methodAffected methodClass.
 	chgClass ifNil: [ ^ false ].	"sometimes the change creates a method for an unexisting class ..."
@@ -213,47 +213,47 @@ AbstractSmartTestExperiment >> isCollectionMethod: epChange [
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> isSystemWideMethod: epChange [
+AbstractSTExperiment >> isSystemWideMethod: epChange [
 	(#(#new #initialize) includes: epChange methodAffected selector)
 		ifTrue: [ ^ true ].
 	^ self isCollectionMethod: epChange
 ]
 
 { #category : #accessing }
-AbstractSmartTestExperiment >> logFileReference: logfileRef [
+AbstractSTExperiment >> logFileReference: logfileRef [
 	logger logFileReference: logfileRef
 ]
 
 { #category : #analysis }
-AbstractSmartTestExperiment >> manageBuildCache [
+AbstractSTExperiment >> manageBuildCache [
 	self subclassResponsibility
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> ombuEntriesFromFile: ombFile [
+AbstractSTExperiment >> ombuEntriesFromFile: ombFile [
 	"conveniance method to call the class side one"
 	^ self class ombuEntriesFromFile: ombFile
 ]
 
 { #category : #accessing }
-AbstractSmartTestExperiment >> packages [
+AbstractSTExperiment >> packages [
 	^ dataSet packages
 ]
 
 { #category : #analysis }
-AbstractSmartTestExperiment >> performAnalysis [
+AbstractSTExperiment >> performAnalysis [
 	smTFinders keysDo: [ :key | self performAnalysis: key ]
 ]
 
 { #category : #analysis }
-AbstractSmartTestExperiment >> performAnalysis: aSymbol [
+AbstractSTExperiment >> performAnalysis: aSymbol [
 	^ ((smTFinders at: aSymbol)
 		researchTestsForMethod: currentChange methodAffected compiledMethod)
 		collect: [ :method | method fullName ]
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> processChange [
+AbstractSTExperiment >> processChange [
 	currentChange isCodeChange
 		ifTrue: [ logger logAppliedCodeChange: currentChange.
 			currentChange applyCodeChange ]
@@ -261,22 +261,22 @@ AbstractSmartTestExperiment >> processChange [
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> runSuites [
+AbstractSTExperiment >> runSuites [
 	collectionOfTestSuites do: [ :each | each run ]
 ]
 
 { #category : #accessing }
-AbstractSmartTestExperiment >> smTFinders: anObject [
+AbstractSTExperiment >> smTFinders: anObject [
 	smTFinders := anObject
 ]
 
 { #category : #accessing }
-AbstractSmartTestExperiment >> smTResults: anObject [
+AbstractSTExperiment >> smTResults: anObject [
 	smTResults := anObject
 ]
 
 { #category : #private }
-AbstractSmartTestExperiment >> smartTestInterventionNeeded: aChange [
+AbstractSTExperiment >> smartTestInterventionNeeded: aChange [
 	"Answer whether currentChange corresponds to a change which requires a SmartTest intervention
 	 and this is when:
 	 - the change was not the consequence of a monticello load (so really done by the developper)

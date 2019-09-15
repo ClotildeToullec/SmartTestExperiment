@@ -14,7 +14,7 @@ Class {
 	#classInstVars : [
 		'runningExperiment'
 	],
-	#category : #'SmartTestExperiment-timeAndMem'
+	#category : #'SmartTestExperiment-Time-Memory'
 }
 
 { #category : #finders }
@@ -168,6 +168,11 @@ TimeAndMemoryMaster >> initialize [
 	super initialize.
 	dataSets := OrderedCollection new.
 	datasetSizes := OrderedCollection new.
+]
+
+{ #category : #analysis }
+TimeAndMemoryMaster >> manageBuildCache [
+	self subclassResponsibility
 ]
 
 { #category : #running }

@@ -7,12 +7,12 @@ When a code change occurs in a metamodel or tests generator, I apply the generat
 "
 Class {
 	#name : #MooseGenerationOmbuCreator,
-	#superclass : #ExperimentLauncher,
+	#superclass : #STExperimentLauncher,
 	#instVars : [
 		'nbOfChangesInOmbu',
 		'currentOmbuName'
 	],
-	#category : #'SmartTestExperiment-analysis'
+	#category : #'SmartTestExperiment-Ombu'
 }
 
 { #category : #running }

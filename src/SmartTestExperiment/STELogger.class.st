@@ -1,20 +1,23 @@
+"
+Utility class for logging results of STExperimentLauncher
+"
 Class {
-	#name : #ExperimentLogger,
+	#name : #STELogger,
 	#superclass : #Object,
 	#instVars : [
 		'logstream',
 		'logFileReference'
 	],
-	#category : #'SmartTestExperiment-reporting'
+	#category : #'SmartTestExperiment-Reporting'
 }
 
-{ #category : #logging }
-ExperimentLogger >> blankLine [
+{ #category : #format }
+STELogger >> blankLine [
 	self log: '' crBefore: true indentation: 0
 ]
 
-{ #category : #logging }
-ExperimentLogger >> closelog [
+{ #category : #'opening-closing' }
+STELogger >> closelog [
 	self separationLine.
 	self
 		log: 'Terminating Smarttest experiment at '
@@ -25,16 +28,20 @@ ExperimentLogger >> closelog [
 		ifTrue: [ logstream close ]
 ]
 
-{ #category : #initialization }
-ExperimentLogger >> initialize [
-	super initialize.
-	logstream := nil.
-	logFileReference := self logFileName asFileReference.
-	
+{ #category : #accessing }
+STELogger >> defaultLogFileReference [
+	^ 'SmartTestLogFile.txt' asFileReference
 ]
 
-{ #category : #logging }
-ExperimentLogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
+{ #category : #initialization }
+STELogger >> initialize [
+	super initialize.
+	logstream := nil.
+	logFileReference := self defaultLogFileReference
+]
+
+{ #category : #format }
+STELogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
 	(logstream notNil and: [ logstream isStream ])
 		ifFalse: [ ^ self ].
 	logstream closed
@@ -48,7 +55,7 @@ ExperimentLogger >> log: aLogEntry crBefore: crBefore indentation: indentLevel [
 ]
 
 { #category : #logging }
-ExperimentLogger >> logAppliedCodeChange: aChange [
+STELogger >> logAppliedCodeChange: aChange [
 	self
 		blankLine;
 		log: '----- Code change applied  -----'
@@ -57,8 +64,8 @@ ExperimentLogger >> logAppliedCodeChange: aChange [
 		log: aChange printString crBefore: true indentation: 1
 ]
 
-{ #category : #logging }
-ExperimentLogger >> logCollection: aCollection [
+{ #category : #format }
+STELogger >> logCollection: aCollection [
 	"Log the contents of the collection but make sure that the print representations is sorted"
 
 	(logstream notNil and: [ logstream isStream ])
@@ -70,30 +77,25 @@ ExperimentLogger >> logCollection: aCollection [
 ]
 
 { #category : #logging }
-ExperimentLogger >> logCreatedTestcases: testCaseClasses [
+STELogger >> logCreatedTestcases: testCaseClasses [
 	self log: 'Created testCases:' crBefore: true indentation: 1.
 	self log: '' crBefore: true indentation: 2.
 	self logCollection: testCaseClasses
 ]
 
 { #category : #accessing }
-ExperimentLogger >> logFileName [
-	^ 'SmartTestLogFile.txt'
-]
-
-{ #category : #accessing }
-ExperimentLogger >> logFileReference [
+STELogger >> logFileReference [
 	^ logFileReference
 ]
 
 { #category : #accessing }
-ExperimentLogger >> logFileReference: aFileReference [
+STELogger >> logFileReference: aFileReference [
 	aFileReference assert: aFileReference class == FileReference  description: 'Expected a FileReference for #logFileReference:'.
 	logFileReference := aFileReference
 ]
 
 { #category : #logging }
-ExperimentLogger >> logIgnoreCodeChange [
+STELogger >> logIgnoreCodeChange [
 	self
 		log: '----- Ignored code change -----'
 		crBefore: true
@@ -101,7 +103,7 @@ ExperimentLogger >> logIgnoreCodeChange [
 ]
 
 { #category : #logging }
-ExperimentLogger >> logNoSmarttestAnalysis [
+STELogger >> logNoSmarttestAnalysis [
 	self
 		log: '----- No SmartTest analysis needed -----'
 		crBefore: true
@@ -109,7 +111,7 @@ ExperimentLogger >> logNoSmarttestAnalysis [
 ]
 
 { #category : #logging }
-ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
+STELogger >> logStartOfCodeChange: aChange number: changeNumber [
 	self
 		separationLine;
 		separationLine;
@@ -132,8 +134,8 @@ ExperimentLogger >> logStartOfCodeChange: aChange number: changeNumber [
 		separationLine
 ]
 
-{ #category : #logging }
-ExperimentLogger >> openlog [
+{ #category : #'opening-closing' }
+STELogger >> openlog [
 	logFileReference exists
 		ifTrue: [ logFileReference delete ].
 	logstream := logFileReference writeStream.
@@ -145,8 +147,8 @@ ExperimentLogger >> openlog [
 	self separationLine
 ]
 
-{ #category : #logging }
-ExperimentLogger >> reopenLog [
+{ #category : #'opening-closing' }
+STELogger >> reopenLog [
 	logstream := logFileReference writeStream.
 	logstream setToEnd.
 	self
@@ -157,10 +159,26 @@ ExperimentLogger >> reopenLog [
 		blankLine
 ]
 
-{ #category : #'final logging' }
-ExperimentLogger >> separationLine [
+{ #category : #format }
+STELogger >> separationLine [
 	self
 		log: '--------------------------------------------------------------'
 		crBefore: true
 		indentation: 0
+]
+
+{ #category : #format }
+STELogger >> symbolToString: aSymbol [
+	"Utility -- Should not be here -- Twin method in Visualizer:
+	 #aSymbolToBeTransformed --> 'A Symbol To Be Transformed' "
+
+	| stream |
+	stream := WriteStream with: ''.
+	stream << aSymbol asString first asUppercase.
+	aSymbol asString allButFirst
+		do: [ :char | 
+			char isUppercase
+				ifTrue: [ stream space ].
+			stream << char ].
+	^ stream contents
 ]

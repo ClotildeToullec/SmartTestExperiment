@@ -8,28 +8,28 @@ Class {
 	#instVars : [
 		'measurements'
 	],
-	#category : #'SmartTestExperiment-testing'
+	#category : #'SmartTestExperiment-Tests'
 }
 
 { #category : #'initialize-release' }
 TestExperimentLauncherMeasurements >> setUp [
-	measurements := ExperimentLauncherMeasurements new: ExperimentLauncher defaultFinders keys.
+	measurements := STEMeasurements new: STExperimentLauncher defaultFinders keys.
 ]
 
 { #category : #running }
 TestExperimentLauncherMeasurements >> testAlphaOmegaTestTimes [
 	self assert: (measurements lastRow at: #totalTestTime) equals: 0.
-	measurements incrementResult: #totalTestTime withAmount: 99.
+	measurements at: #totalTestTime increment: 99.
 	self
 		assert: (measurements lastRow at: #totalTestTime) equals: 99;
 		assert: (measurements lastRow at: #reducedTestTimeStatic) equals: 0.
-	measurements incrementResult: #reducedTestTimeStatic withAmount: 88.
+	measurements at: #reducedTestTimeStatic increment: 88.
 	self
 		assert: (measurements lastRow at: #reducedTestTimeStatic)
 			equals: 88;
 		assert: (measurements lastRow at: #reducedTestTimeDynamic)
 			equals: 0.
-	measurements incrementResult: #reducedTestTimeDynamic withAmount: 44.
+	measurements at: #reducedTestTimeDynamic increment: 44.
 	self
 		assert: (measurements lastRow at: #reducedTestTimeDynamic)
 		equals: 44
@@ -39,8 +39,9 @@ TestExperimentLauncherMeasurements >> testAlphaOmegaTestTimes [
 TestExperimentLauncherMeasurements >> testCacheSize [
 	"self run: #testAlphaOmegaCachesize"
 
+	self flag: 'Invalid: cacheSize:'.
 	self assert: (measurements lastRow at: #cacheSize) equals: 0.
-	measurements cacheSize: 3.
+"	measurements cacheSize: 3."
 	self assert: (measurements lastRow at: #cacheSize) equals: 3
 ]
 
@@ -49,14 +50,14 @@ TestExperimentLauncherMeasurements >> testIncrementResults [
 	| lastRow |
 	"First row"
 	measurements
-		incrementResult: #truePositivesStatic withAmount: 8;
-		incrementResult: #falsePositivesStatic withAmount: 7;
-		incrementResult: #falseNegativesStatic withAmount: 6;
-		incrementResult: #trueNegativesStatic withAmount: 5;
-		incrementResult: #truePositivesDynamic withAmount: 4;
-		incrementResult: #falsePositivesDynamic withAmount: 3;
-		incrementResult: #falseNegativesDynamic withAmount: 2;
-		incrementResult: #trueNegativesDynamic withAmount: 1.
+		at: #truePositivesStatic increment: 8;
+		at: #falsePositivesStatic increment: 7;
+		at: #falseNegativesStatic increment: 6;
+		at: #trueNegativesStatic increment: 5;
+		at: #truePositivesDynamic increment: 4;
+		at: #falsePositivesDynamic increment: 3;
+		at: #falseNegativesDynamic increment: 2;
+		at: #trueNegativesDynamic increment: 1.
 	lastRow := measurements lastRow.
 	self
 		assert: (lastRow at: #truePositivesStatic) equals: 8;
@@ -69,16 +70,16 @@ TestExperimentLauncherMeasurements >> testIncrementResults [
 		assert: (lastRow at: #trueNegativesDynamic) equals: 1.
 
 	"Second row"
-	measurements startNewRow.
+	measurements newRow.
 	measurements
-		incrementResult: #truePositivesStatic withAmount: 1;
-		incrementResult: #falsePositivesStatic withAmount: 2;
-		incrementResult: #falseNegativesStatic withAmount: 3;
-		incrementResult: #trueNegativesStatic withAmount: 4;
-		incrementResult: #truePositivesDynamic withAmount: 5;
-		incrementResult: #falsePositivesDynamic withAmount: 6;
-		incrementResult: #falseNegativesDynamic withAmount: 7;
-		incrementResult: #trueNegativesDynamic withAmount: 8.
+		at: #truePositivesStatic increment: 1;
+		at: #falsePositivesStatic increment: 2;
+		at: #falseNegativesStatic increment: 3;
+		at: #trueNegativesStatic increment: 4;
+		at: #truePositivesDynamic increment: 5;
+		at: #falsePositivesDynamic increment: 6;
+		at: #falseNegativesDynamic increment: 7;
+		at: #trueNegativesDynamic increment: 8.
 	lastRow := measurements lastRow.
 	self
 		assert: (lastRow at: #truePositivesStatic) equals: 1;
@@ -122,7 +123,7 @@ TestExperimentLauncherMeasurements >> testSourceCodeChurn [
 		assert: (lastRow at: #sourceLinesDeleted) equals: 4.
 
 	"Second row"
-	measurements startNewRow.
+	measurements newRow.
 	measurements
 		incrementChange: #linesAdded withAmount: 3 inTest: false;
 		incrementChange: #linesModified withAmount: 2 inTest: false;
@@ -157,7 +158,7 @@ TestExperimentLauncherMeasurements >> testTestCodeChurn [
 		assert: (lastRow at: #testLinesDeleted) equals: 4.
 
 	"Second row"
-	measurements startNewRow.
+	measurements newRow.
 	measurements
 		incrementChange: #linesAdded withAmount: 3 inTest: true;
 		incrementChange: #linesModified withAmount: 2 inTest: true;
@@ -189,6 +190,6 @@ TestExperimentLauncherMeasurements >> testUnknownColumns [
 				inTest: true ]
 		raise: KeyNotFound.
 	self
-		should: [ measurements incrementResult: #unexistingSymbol withAmount: 1 ]
+		should: [ measurements at: #unexistingSymbol increment: 1 ]
 		raise: KeyNotFound
 ]

@@ -1,5 +1,5 @@
 "
-I am apply all commits from a GitHub project.
+I apply all commits from a GitHub project.
 
 Instance creation: 
 	GithubCommitsApplier author: theGitHubOwner project: theGitHubProjectName.
@@ -10,7 +10,7 @@ You can then apply commits from a branch one by one:
 The triggered code changes will be seen in YourImageDirectory/pharo-local/ombu-sessions/theGitHubProjectName.ombu
 "
 Class {
-	#name : #GithubCommitsApplier,
+	#name : #GithubCommitsOmbuCreator,
 	#superclass : #Object,
 	#instVars : [
 		'author',
@@ -18,11 +18,11 @@ Class {
 		'repository',
 		'commits'
 	],
-	#category : #'SmartTestExperiment-analysis'
+	#category : #'SmartTestExperiment-Ombu'
 }
 
 { #category : #accessing }
-GithubCommitsApplier class >> newForAuthor: anAuthor project: aProjectName [
+GithubCommitsOmbuCreator class >> newForAuthor: anAuthor project: aProjectName [
 	^ self new
 		author: anAuthor
 		project: aProjectName;
@@ -30,7 +30,7 @@ GithubCommitsApplier class >> newForAuthor: anAuthor project: aProjectName [
 ]
 
 { #category : #'ombu creation' }
-GithubCommitsApplier >> applyAllComitsInBranch: aBranchName [
+GithubCommitsOmbuCreator >> applyAllComitsInBranch: aBranchName [
 	self recompilePackageLoadingMethod.
 	OmbuFilesOrganizer new startNewOmbuFileNamed: project.
 	commits := (repository branchNamed: aBranchName) newCommitWalk
@@ -39,7 +39,7 @@ GithubCommitsApplier >> applyAllComitsInBranch: aBranchName [
 ]
 
 { #category : #'ombu creation' }
-GithubCommitsApplier >> applyAllComitsInBranch: aBranchName andRun: aBlock [
+GithubCommitsOmbuCreator >> applyAllComitsInBranch: aBranchName andRun: aBlock [
 	self recompilePackageLoadingMethod.
 	OmbuFilesOrganizer new startNewOmbuFileNamed: project.
 	commits := (repository branchNamed: aBranchName) newCommitWalk
@@ -48,13 +48,13 @@ GithubCommitsApplier >> applyAllComitsInBranch: aBranchName andRun: aBlock [
 ]
 
 { #category : #initialization }
-GithubCommitsApplier >> author: anAuthor project: aProjectName [
+GithubCommitsOmbuCreator >> author: anAuthor project: aProjectName [
 	author := anAuthor.
 	project := aProjectName
 ]
 
 { #category : #'ombu creation' }
-GithubCommitsApplier >> checkoutCommits [
+GithubCommitsOmbuCreator >> checkoutCommits [
 	UIManager default
 		displayProgress: 'Checking out commits'
 		from: 1
@@ -74,7 +74,7 @@ GithubCommitsApplier >> checkoutCommits [
 ]
 
 { #category : #'ombu creation' }
-GithubCommitsApplier >> checkoutCommitsRunning: aBlock [
+GithubCommitsOmbuCreator >> checkoutCommitsRunning: aBlock [
 	UIManager default
 		displayProgress: 'Checking out commits and run analysis'
 		from: 1
@@ -95,7 +95,7 @@ GithubCommitsApplier >> checkoutCommitsRunning: aBlock [
 ]
 
 { #category : #'ombu creation' }
-GithubCommitsApplier >> createRepository [
+GithubCommitsOmbuCreator >> createRepository [
 	self
 		flag:
 			'For now, Error if the repository already exists. Todo: Get the existing repository, tu use it or to remove it.'.
@@ -107,8 +107,24 @@ GithubCommitsApplier >> createRepository [
 		createRepository
 ]
 
+{ #category : #'getting diff' }
+GithubCommitsOmbuCreator >> getDiffBetweenCommits [
+	commits := commits reverse.
+	^ commits second changesFromCommit: commits first
+	"These changes are IceGitChange."
+]
+
+{ #category : #'getting diff' }
+GithubCommitsOmbuCreator >> getDiffBetweenFirstCommitsInBranch: aBranchName [
+	self recompilePackageLoadingMethod.
+	OmbuFilesOrganizer new startNewOmbuFileNamed: project.
+	commits := (repository branchNamed: aBranchName) newCommitWalk
+		commits.
+	^ self getDiffBetweenCommits
+]
+
 { #category : #private }
-GithubCommitsApplier >> recompilePackageLoadingMethod [
+GithubCommitsOmbuCreator >> recompilePackageLoadingMethod [
 	EpMonitor current disable.
 	IceWorkingCopy
 		compile:

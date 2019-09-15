@@ -14,7 +14,7 @@ OmbuFilesOrganizer>>packageNamesInFile:
 Class {
 	#name : #OmbuFilesOrganizer,
 	#superclass : #Object,
-	#category : #'SmartTestExperiment-analysis'
+	#category : #'SmartTestExperiment-Ombu'
 }
 
 { #category : #'ombu creation' }
