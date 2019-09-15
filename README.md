@@ -1,6 +1,6 @@
 # SmartTest Experiment
 
-SmartTestExperiment is used to evaluate SmartTest.
+SmartTestExperiment is used to evaluate [SmartTest](https://github.com/badetitou/SmartTest).
 
 Evaluate this code in a Playground to load it: 
 
@@ -10,4 +10,4 @@ Metacello new
   githubUser: 'ClotildeToullec' project: 'SmartTestExperiment' commitish: 'master' path: '.';
   load
 ```
-This project is dependant on SmartTest, NeoCSV, OSSubprocess and Roassal2.
+This project is dependant on [NeoCSV](https://github.com/svenvc/NeoCSV), [OSSubprocess](https://github.com/pharo-contributions/OSSubprocess) and [Roassal2](https://github.com/ObjectProfile/Roassal2).
